@@ -1,9 +1,10 @@
 "use client";
 
 import React from 'react';
-import { Truck, ArrowLeft, Mail, MessageSquare, Phone } from 'lucide-react';
+import { ArrowLeft, Mail, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import Logo from '@/components/Logo';
 
 const Support = () => {
   const navigate = useNavigate();
@@ -12,11 +13,8 @@ const Support = () => {
     <div className="min-h-screen bg-[#F8FAFC] text-zinc-900 font-sans p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         <nav className="flex items-center justify-between mb-12">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-            <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center">
-              <Truck className="text-white" size={24} />
-            </div>
-            <span className="text-xl font-black tracking-tighter">TRACKPRO</span>
+          <div className="cursor-pointer" onClick={() => navigate('/')}>
+            <Logo size="md" />
           </div>
           <Button variant="ghost" onClick={() => navigate('/')} className="gap-2">
             <ArrowLeft size={18} /> Voltar

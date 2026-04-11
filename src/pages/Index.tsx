@@ -13,13 +13,13 @@ import {
   ArrowRight,
   PackageCheck,
   Zap,
-  Menu,
   Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AntiFraudModal } from '@/components/AntiFraudModal';
 import { TrackingResult } from '@/components/TrackingResult';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+import Logo from '@/components/Logo';
 
 // Logos de transportadoras
 import correiosLogo from '@/assets/correios.png';
@@ -101,13 +101,8 @@ const Index = () => {
       {/* Navbar */}
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-zinc-100">
         <div className="container mx-auto px-4 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center">
-              <Truck className="text-white" size={24} />
-            </div>
-            <span className="text-xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-green-500">
-              TRACKPRO
-            </span>
+          <div className="cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+            <Logo size="md" />
           </div>
           
           <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-zinc-600">
@@ -398,13 +393,8 @@ const Index = () => {
       <footer className="py-20 border-t border-zinc-100 px-4 bg-white">
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-12 border-b border-zinc-100 pb-12 mb-12">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-              <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center">
-                <Truck className="text-white" size={24} />
-              </div>
-              <span className="text-2xl font-black tracking-tighter text-zinc-900">
-                TRACKPRO
-              </span>
+            <div className="cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+              <Logo size="lg" />
             </div>
             
             <div className="flex flex-wrap gap-8 text-sm font-bold text-zinc-500 uppercase tracking-widest">

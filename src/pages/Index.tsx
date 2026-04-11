@@ -32,19 +32,45 @@ const Index = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [showResult, setShowResult] = useState(false);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validação do padrão: BR + 4 dígitos + 1 letra + 3 dígitos + BR
-    const trackingPattern = /^BR\d{4}[A-Z]\d{3}BR$/i;
-    
-    if (!trackingCode) {
-      showError("Por favor, insira um código de rastreio.");
+  // Função para formatar e validar a entrada em tempo real
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.toUpperCase();
+    const index = value.length - 1;
+    const char = value[index];
+
+    // Se estiver apagando, permite
+    if (value.length < trackingCode.length) {
+      setTrackingCode(value);
       return;
     }
 
-    if (!trackingPattern.test(trackingCode)) {
-      showError("Formato inválido. Use o padrão BR0000X000BR");
+    // Limita o tamanho máximo
+    if (value.length > 13) return;
+
+    // Regras por posição
+    const isDigit = (c: string) => /\d/.test(c);
+    const isAlpha = (c: string) => /[A-Z]/.test(c);
+
+    // Validação rigorosa por índice
+    let isValid = true;
+    if (index === 0 && char !== 'B') isValid = false;
+    else if (index === 1 && char !== 'R') isValid = false;
+    else if (index >= 2 && index <= 5 && !isDigit(char)) isValid = false;
+    else if (index === 6 && !isAlpha(char)) isValid = false;
+    else if (index >= 7 && index <= 9 && !isDigit(char)) isValid = false;
+    else if (index === 10 && char !== 'B') isValid = false;
+    else if (index === 11 && char !== 'R') isValid = false;
+
+    if (isValid) {
+      setTrackingCode(value);
+    }
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (trackingCode.length < 12) {
+      showError("O código deve seguir o padrão completo: BR0000X000BR");
       return;
     }
 
@@ -61,7 +87,10 @@ const Index = () => {
     
     // Scroll suave para o resultado
     setTimeout(() => {
-      window.scrollTo({ top: 500, behavior: 'smooth' });
+      const resultElement = document.getElementById('tracking-result');
+      if (resultElement) {
+        resultElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }, 100);
   };
 
@@ -172,11 +201,10 @@ const Index = () => {
                   <Search className="text-zinc-400 shrink-0" size={24} />
                   <input 
                     type="text" 
-                    placeholder="Ex: BR1234A567BR"
-                    className="w-full h-14 md:h-16 outline-none text-lg font-medium text-zinc-800 placeholder:text-zinc-400"
+                    placeholder="BR0000A000BR"
+                    className="w-full h-14 md:h-16 outline-none text-lg font-mono font-bold tracking-widest text-zinc-800 placeholder:text-zinc-300"
                     value={trackingCode}
-                    maxLength={13}
-                    onChange={(e) => setTrackingCode(e.target.value.toUpperCase())}
+                    onChange={handleInputChange}
                   />
                 </div>
                 <Button 
@@ -215,7 +243,9 @@ const Index = () => {
       </section>
 
       {/* Result Section */}
-      {showResult && <TrackingResult code={trackingCode} data={mockEvents} />}
+      <div id="tracking-result">
+        {showResult && <TrackingResult code={trackingCode} data={mockEvents} />}
+      </div>
 
       {/* Benefits Section */}
       <section className="py-24 bg-white border-y border-zinc-100 px-4">

@@ -40,8 +40,8 @@ export const AntiFraudModal = () => {
               </button>
 
               <div className="flex flex-col items-center text-center space-y-4">
-                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-2">
-                  <ShieldAlert className="text-blue-600 dark:text-blue-400" size={32} />
+                <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-2">
+                  <ShieldAlert className="text-red-600 dark:text-red-400" size={32} />
                 </div>
                 
                 <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
@@ -59,7 +59,7 @@ export const AntiFraudModal = () => {
                     "Proteja seus dados e nunca compartilhe senhas de acesso"
                   ].map((item, idx) => (
                     <div key={idx} className="flex items-start gap-3">
-                      <CheckCircle2 className="text-blue-500 shrink-0 mt-0.5" size={18} />
+                      <CheckCircle2 className="text-green-500 shrink-0 mt-0.5" size={18} />
                       <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{item}</span>
                     </div>
                   ))}
@@ -67,7 +67,7 @@ export const AntiFraudModal = () => {
 
                 <Button 
                   onClick={handleClose}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-12 text-base font-semibold transition-all shadow-lg shadow-blue-600/20"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white rounded-xl h-12 text-base font-semibold transition-all shadow-lg shadow-green-600/20"
                 >
                   Entendi, desejo continuar
                 </Button>

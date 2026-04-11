@@ -12,6 +12,7 @@ import {
   ArrowRight,
   PackageCheck,
   Zap,
+  Menu,
   Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -100,23 +101,23 @@ const Index = () => {
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-zinc-100">
         <div className="container mx-auto px-4 h-20 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center">
               <Truck className="text-white" size={24} />
             </div>
-            <span className="text-xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-blue-500">
+            <span className="text-xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-green-500">
               TRACKPRO
             </span>
           </div>
           
           <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-zinc-600">
-            <button onClick={() => scrollToSection('como-funciona')} className="hover:text-blue-600 transition-colors">Como funciona</button>
-            <button onClick={() => scrollToSection('transportadoras')} className="hover:text-blue-600 transition-colors">Transportadoras</button>
-            <button onClick={() => scrollToSection('planos')} className="hover:text-blue-600 transition-colors">Planos</button>
+            <button onClick={() => scrollToSection('como-funciona')} className="hover:text-green-600 transition-colors">Como funciona</button>
+            <button onClick={() => scrollToSection('transportadoras')} className="hover:text-green-600 transition-colors">Transportadoras</button>
+            <button onClick={() => scrollToSection('planos')} className="hover:text-green-600 transition-colors">Planos</button>
           </div>
 
           <div className="flex items-center gap-3">
-            <Button variant="ghost" className="font-bold text-zinc-700 hover:text-blue-600">Entrar</Button>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl px-6">CADASTRE-SE</Button>
+            <Button variant="ghost" className="font-bold text-zinc-700 hover:text-green-600">Entrar</Button>
+            <Button className="bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl px-6">CADASTRE-SE</Button>
           </div>
         </div>
       </nav>
@@ -127,7 +128,7 @@ const Index = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-bold mb-6 border border-blue-100"
+            className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-full text-sm font-bold mb-6 border border-green-100"
           >
             <Zap size={16} />
             Rastreamento em Tempo Real
@@ -140,7 +141,7 @@ const Index = () => {
             className="text-4xl md:text-7xl font-black text-zinc-900 mb-6 leading-tight"
           >
             Rastreie suas encomendas <br className="hidden md:block" /> 
-            <span className="text-blue-600">em segundos.</span>
+            <span className="text-green-600">em segundos.</span>
           </motion.h1>
           
           <motion.p 
@@ -160,7 +161,7 @@ const Index = () => {
             className="w-full max-w-3xl mx-auto"
           >
             <form onSubmit={handleSearch} className="relative group">
-              <div className="absolute inset-0 bg-blue-400/20 blur-2xl group-hover:bg-blue-400/30 transition-all rounded-3xl" />
+              <div className="absolute inset-0 bg-green-400/20 blur-2xl group-hover:bg-green-400/30 transition-all rounded-3xl" />
               <div className="relative flex flex-col md:flex-row gap-3 p-3 bg-white border-2 border-zinc-100 rounded-3xl shadow-2xl overflow-hidden">
                 <div className="flex-1 flex items-center px-4 gap-3">
                   <Search className="text-zinc-400 shrink-0" size={24} />
@@ -175,7 +176,7 @@ const Index = () => {
                 <Button 
                   type="submit"
                   disabled={isSearching}
-                  className="bg-blue-600 hover:bg-blue-700 text-white h-14 md:h-16 px-8 text-lg font-black rounded-2xl transition-all shadow-lg shadow-blue-600/20 active:scale-[0.98]"
+                  className="bg-green-600 hover:bg-green-700 text-white h-14 md:h-16 px-8 text-lg font-black rounded-2xl transition-all shadow-lg shadow-green-600/20 active:scale-[0.98]"
                 >
                   {isSearching ? 'BUSCANDO...' : 'RASTREAR AGORA'}
                 </Button>
@@ -225,7 +226,7 @@ const Index = () => {
                 desc: "Fique por dentro de cada passo sem precisar atualizar a página o tempo todo."
               },
               {
-                icon: <History className="text-blue-500" size={32} />,
+                icon: <History className="text-green-500" size={32} />,
                 title: "Histórico Completo",
                 desc: "Mantenha todos os seus pedidos anteriores salvos para consulta futura rápida."
               }
@@ -259,7 +260,7 @@ const Index = () => {
                   { step: "03", title: "Acompanhe tudo", text: "Veja em uma linha do tempo intuitiva onde está sua encomenda." }
                 ].map((item, idx) => (
                   <div key={idx} className="flex gap-6 group">
-                    <div className="text-4xl font-black text-zinc-100 group-hover:text-blue-100 transition-colors">{item.step}</div>
+                    <div className="text-4xl font-black text-zinc-100 group-hover:text-green-100 transition-colors">{item.step}</div>
                     <div>
                       <h4 className="text-xl font-bold mb-2">{item.title}</h4>
                       <p className="text-zinc-500">{item.text}</p>
@@ -269,11 +270,11 @@ const Index = () => {
               </div>
             </div>
             <div className="flex-1 relative">
-              <div className="absolute inset-0 bg-blue-500 rounded-full blur-3xl opacity-10 animate-pulse" />
+              <div className="absolute inset-0 bg-green-500 rounded-full blur-3xl opacity-10 animate-pulse" />
               <div className="relative bg-zinc-900 rounded-[3rem] p-4 shadow-2xl border-8 border-zinc-800 rotate-3 transform hover:rotate-0 transition-all duration-500 max-w-[320px] mx-auto">
                  <div className="bg-white rounded-[2.5rem] overflow-hidden aspect-[9/19]">
                    <div className="h-full flex flex-col items-center justify-center p-6 text-center">
-                     <PackageCheck className="text-blue-600 mb-4" size={48} />
+                     <PackageCheck className="text-green-600 mb-4" size={48} />
                      <h5 className="font-bold text-lg mb-2">Entrega Realizada!</h5>
                      <p className="text-xs text-zinc-400">Seu pacote chegou ao destino final em Curitiba - PR.</p>
                      <div className="w-full mt-8 space-y-3">
@@ -318,9 +319,9 @@ const Index = () => {
                 highlight: false
               }
             ].map((plan, idx) => (
-              <div key={idx} className={`p-10 rounded-[2.5rem] border-2 transition-all ${plan.highlight ? 'border-blue-500 bg-white shadow-2xl shadow-blue-100 relative' : 'border-zinc-100 bg-zinc-50/50'}`}>
+              <div key={idx} className={`p-10 rounded-[2.5rem] border-2 transition-all ${plan.highlight ? 'border-green-500 bg-white shadow-2xl shadow-green-100 relative' : 'border-zinc-100 bg-zinc-50/50'}`}>
                 {plan.highlight && (
-                  <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest">Mais Popular</span>
+                  <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest">Mais Popular</span>
                 )}
                 <h4 className="text-xl font-bold mb-2">{plan.name}</h4>
                 <div className="flex items-end justify-center gap-1 mb-8">
@@ -330,12 +331,12 @@ const Index = () => {
                 <ul className="space-y-4 mb-10 text-left">
                   {plan.features.map((feature, fidx) => (
                     <li key={fidx} className="flex items-center gap-3 text-sm text-zinc-600 font-medium">
-                      <Check className="text-blue-500 shrink-0" size={18} />
+                      <Check className="text-green-500 shrink-0" size={18} />
                       {feature}
                     </li>
                   ))}
                 </ul>
-                <Button className={`w-full h-14 rounded-2xl font-black text-lg transition-all ${plan.highlight ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-zinc-200 hover:bg-zinc-300 text-zinc-700'}`}>
+                <Button className={`w-full h-14 rounded-2xl font-black text-lg transition-all ${plan.highlight ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-zinc-200 hover:bg-zinc-300 text-zinc-700'}`}>
                   {plan.button}
                 </Button>
               </div>
@@ -360,8 +361,8 @@ const Index = () => {
               "Status não atualiza"
             ].map((q, idx) => (
               <div key={idx} className="p-8 rounded-3xl bg-zinc-800/50 border border-zinc-700 hover:bg-zinc-800 transition-all cursor-pointer group">
-                <HelpCircle className="text-blue-500 mb-4" size={24} />
-                <h4 className="font-bold text-lg mb-4 group-hover:text-blue-400 transition-colors">{q}</h4>
+                <HelpCircle className="text-green-500 mb-4" size={24} />
+                <h4 className="font-bold text-lg mb-4 group-hover:text-green-400 transition-colors">{q}</h4>
                 <div className="flex items-center gap-2 text-sm text-zinc-400 font-bold group-hover:translate-x-1 transition-transform">
                   Ver artigo <ArrowRight size={14} />
                 </div>
@@ -373,19 +374,19 @@ const Index = () => {
 
       {/* CTA Section */}
       <section className="py-24 px-4">
-        <div className="container mx-auto max-w-5xl bg-gradient-to-br from-blue-600 to-blue-700 rounded-[3rem] p-12 text-center text-white relative overflow-hidden shadow-2xl shadow-blue-600/30">
+        <div className="container mx-auto max-w-5xl bg-gradient-to-br from-green-600 to-green-700 rounded-[3rem] p-12 text-center text-white relative overflow-hidden shadow-2xl shadow-green-600/30">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-3xl" />
           
           <div className="relative z-10">
             <h2 className="text-3xl md:text-5xl font-black mb-6">Comece agora gratuitamente</h2>
-            <p className="text-blue-50 mb-10 text-lg opacity-90 max-w-xl mx-auto">
+            <p className="text-green-50 mb-10 text-lg opacity-90 max-w-xl mx-auto">
               Crie sua conta em 30 segundos e salve todos os seus códigos de rastreio em um dashboard exclusivo.
             </p>
-            <Button size="lg" className="bg-white text-blue-700 hover:bg-blue-50 font-black px-12 h-16 rounded-2xl text-xl transition-all shadow-xl active:scale-95">
+            <Button size="lg" className="bg-white text-green-700 hover:bg-green-50 font-black px-12 h-16 rounded-2xl text-xl transition-all shadow-xl active:scale-95">
               CRIAR MINHA CONTA GRÁTIS
             </Button>
-            <p className="mt-6 text-sm text-blue-100/70 flex items-center justify-center gap-2 font-medium">
+            <p className="mt-6 text-sm text-green-100/70 flex items-center justify-center gap-2 font-medium">
               <ShieldCheck size={16} /> Sem taxas ocultas. Privacidade 100% garantida.
             </p>
           </div>
@@ -397,7 +398,7 @@ const Index = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-12 border-b border-zinc-100 pb-12 mb-12">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center">
                 <Truck className="text-white" size={24} />
               </div>
               <span className="text-2xl font-black tracking-tighter text-zinc-900">
@@ -406,10 +407,10 @@ const Index = () => {
             </div>
             
             <div className="flex flex-wrap gap-8 text-sm font-bold text-zinc-500 uppercase tracking-widest">
-              <a href="#" className="hover:text-blue-600 transition-colors">Termos de Uso</a>
-              <a href="#" className="hover:text-blue-600 transition-colors">Privacidade</a>
-              <a href="#" className="hover:text-blue-600 transition-colors">Afiliados</a>
-              <a href="#" className="hover:text-blue-600 transition-colors">Suporte</a>
+              <a href="#" className="hover:text-green-600 transition-colors">Termos de Uso</a>
+              <a href="#" className="hover:text-green-600 transition-colors">Privacidade</a>
+              <a href="#" className="hover:text-green-600 transition-colors">Afiliados</a>
+              <a href="#" className="hover:text-green-600 transition-colors">Suporte</a>
             </div>
           </div>
           

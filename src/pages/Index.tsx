@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { 
   Search, 
   Truck, 
@@ -397,7 +398,7 @@ const Index = () => {
       <footer className="py-20 border-t border-zinc-100 px-4 bg-white">
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-12 border-b border-zinc-100 pb-12 mb-12">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
               <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center">
                 <Truck className="text-white" size={24} />
               </div>
@@ -407,10 +408,10 @@ const Index = () => {
             </div>
             
             <div className="flex flex-wrap gap-8 text-sm font-bold text-zinc-500 uppercase tracking-widest">
-              <a href="#" className="hover:text-green-600 transition-colors">Termos de Uso</a>
-              <a href="#" className="hover:text-green-600 transition-colors">Privacidade</a>
-              <a href="#" className="hover:text-green-600 transition-colors">Afiliados</a>
-              <a href="#" className="hover:text-green-600 transition-colors">Suporte</a>
+              <Link to="/termos" className="hover:text-green-600 transition-colors">Termos de Uso</Link>
+              <Link to="/privacidade" className="hover:text-green-600 transition-colors">Privacidade</Link>
+              <Link to="/afiliados" className="hover:text-green-600 transition-colors">Afiliados</Link>
+              <Link to="/suporte" className="hover:text-green-600 transition-colors">Suporte</Link>
             </div>
           </div>
           

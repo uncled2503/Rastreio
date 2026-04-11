@@ -248,7 +248,7 @@ const Index = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col md:flex-row items-center gap-16">
             <div className="flex-1">
-              <h2 className="text-3xl md:text-5xl font-black mb-8 leading-tight">Como o TrackPro <br className="hidden md:block" /> facilita sua vida</h2>
+              <h2 className="text-3xl md:text-5xl font-black mb-8 leading-tight">Como o RastreAR <br className="hidden md:block" /> facilita sua vida</h2>
               <div className="space-y-6">
                 {[
                   { step: "01", title: "Insira seu código", text: "Basta colar o código de rastreio recebido da sua loja favorita." },
@@ -406,7 +406,7 @@ const Index = () => {
           </div>
           
           <div className="flex flex-col md:flex-row justify-between items-center gap-6 text-zinc-400 text-sm font-medium">
-            <p>© 2024 TrackPro Logistics. Todos os direitos reservados.</p>
+            <p>© 2024 RastreAR Logistics. Todos os direitos reservados.</p>
             <div className="flex items-center gap-2">
               Feito com ⚡ para uma logística inteligente.
             </div>

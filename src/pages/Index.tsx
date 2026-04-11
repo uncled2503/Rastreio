@@ -13,6 +13,7 @@ import {
   PackageCheck,
   Zap,
   Menu,
+  Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AntiFraudModal } from '@/components/AntiFraudModal';
@@ -54,6 +55,22 @@ const Index = () => {
     }, 100);
   };
 
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      const offset = 100; // Compensação para a navbar fixa
+      const bodyRect = document.body.getBoundingClientRect().top;
+      const elementRect = element.getBoundingClientRect().top;
+      const elementPosition = elementRect - bodyRect;
+      const offsetPosition = elementPosition - offset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   const mockEvents = [
     {
       status: "Objeto em trânsito",
@@ -77,13 +94,13 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-zinc-900 overflow-x-hidden font-sans">
+    <div className="min-h-screen bg-[#F8FAFC] text-zinc-900 overflow-x-hidden font-sans scroll-smooth">
       <AntiFraudModal />
       
       {/* Navbar */}
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-zinc-100">
         <div className="container mx-auto px-4 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
             <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center">
               <Truck className="text-white" size={24} />
             </div>
@@ -93,9 +110,9 @@ const Index = () => {
           </div>
           
           <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-zinc-600">
-            <a href="#" className="hover:text-green-600 transition-colors">Como funciona</a>
-            <a href="#" className="hover:text-green-600 transition-colors">Transportadoras</a>
-            <a href="#" className="hover:text-green-600 transition-colors">Planos</a>
+            <button onClick={() => scrollToSection('como-funciona')} className="hover:text-green-600 transition-colors">Como funciona</button>
+            <button onClick={() => scrollToSection('transportadoras')} className="hover:text-green-600 transition-colors">Transportadoras</button>
+            <button onClick={() => scrollToSection('planos')} className="hover:text-green-600 transition-colors">Planos</button>
           </div>
 
           <div className="flex items-center gap-3">
@@ -169,10 +186,11 @@ const Index = () => {
 
           {/* Partners / Trust */}
           <motion.div 
+            id="transportadoras"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
-            className="mt-16"
+            className="mt-16 pt-8"
           >
             <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-8">Compatível com +100 transportadoras</p>
             <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-60">
@@ -230,7 +248,7 @@ const Index = () => {
       </section>
 
       {/* How it Works Section */}
-      <section className="py-24 px-4 overflow-hidden">
+      <section id="como-funciona" className="py-24 px-4 overflow-hidden scroll-mt-20">
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col md:flex-row items-center gap-16">
             <div className="flex-1">
@@ -266,6 +284,63 @@ const Index = () => {
                  </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Plans Section */}
+      <section id="planos" className="py-24 bg-white border-y border-zinc-100 px-4 scroll-mt-20">
+        <div className="container mx-auto max-w-6xl text-center">
+          <h2 className="text-3xl md:text-5xl font-black mb-4">Planos para todos</h2>
+          <p className="text-zinc-500 mb-16 max-w-2xl mx-auto">Escolha o plano que melhor atende suas necessidades de rastreamento.</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                name: "Gratuito",
+                price: "R$ 0",
+                features: ["Até 5 rastreios ativos", "Histórico de 30 dias", "Notificações básicas"],
+                button: "Começar Agora",
+                highlight: false
+              },
+              {
+                name: "Pro",
+                price: "R$ 19,90",
+                period: "/mês",
+                features: ["Rastreios ilimitados", "Histórico Vitalício", "Alertas via WhatsApp", "Prioridade de busca"],
+                button: "Assinar Pro",
+                highlight: true
+              },
+              {
+                name: "Empresarial",
+                price: "Consulte",
+                features: ["API de Rastreio", "Dashboard Multi-usuário", "Suporte 24/7", "White Label"],
+                button: "Falar com Vendas",
+                highlight: false
+              }
+            ].map((plan, idx) => (
+              <div key={idx} className={`p-10 rounded-[2.5rem] border-2 transition-all ${plan.highlight ? 'border-green-500 bg-white shadow-2xl shadow-green-100 relative' : 'border-zinc-100 bg-zinc-50/50'}`}>
+                {plan.highlight && (
+                  <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest">Mais Popular</span>
+                )}
+                <h4 className="text-xl font-bold mb-2">{plan.name}</h4>
+                <div className="flex items-end justify-center gap-1 mb-8">
+                  <span className="text-4xl font-black">{plan.price}</span>
+                  <span className="text-zinc-400 text-sm font-bold mb-1">{plan.period}</span>
+                </div>
+                <ul className="space-y-4 mb-10 text-left">
+                  {plan.features.map((feature, fidx) => (
+                    <li key={fidx} className="flex items-center gap-3 text-sm text-zinc-600 font-medium">
+                      <Check className="text-green-500 shrink-0" size={18} />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Button className={`w-full h-14 rounded-2xl font-black text-lg transition-all ${plan.highlight ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-zinc-200 hover:bg-zinc-300 text-zinc-700'}`}>
+                  {plan.button}
+                </Button>
+              </div>
+            ))}
           </div>
         </div>
       </section>

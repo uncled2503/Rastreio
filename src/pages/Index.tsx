@@ -12,15 +12,18 @@ import {
   ArrowRight,
   PackageCheck,
   Zap,
-  CheckCircle,
   Menu,
-  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { AntiFraudModal } from '@/components/AntiFraudModal';
 import { TrackingResult } from '@/components/TrackingResult';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+
+// Logos de transportadoras
+import correiosLogo from '@/assets/correios.png';
+import jadlogLogo from '@/assets/jadlog.png';
+import loggiLogo from '@/assets/loggi.png';
+import totalExpressLogo from '@/assets/total-express.png';
 
 const Index = () => {
   const [trackingCode, setTrackingCode] = useState('');
@@ -64,6 +67,13 @@ const Index = () => {
       date: "10/05/2024 às 09:15",
       description: "O objeto foi postado pelo remetente e está a caminho."
     }
+  ];
+
+  const carriers = [
+    { name: 'Correios', logo: correiosLogo },
+    { name: 'Jadlog', logo: jadlogLogo },
+    { name: 'Loggi', logo: loggiLogo },
+    { name: 'Total Express', logo: totalExpressLogo },
   ];
 
   return (
@@ -165,9 +175,14 @@ const Index = () => {
             className="mt-16"
           >
             <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-8">Compatível com +100 transportadoras</p>
-            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-40 grayscale">
-              {['Correios', 'Jadlog', 'Loggi', 'Total Express', 'FedEx'].map((brand) => (
-                <span key={brand} className="text-xl font-black text-zinc-800">{brand}</span>
+            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-60">
+              {carriers.map((carrier) => (
+                <img 
+                  key={carrier.name} 
+                  src={carrier.logo} 
+                  alt={carrier.name} 
+                  className="h-8 md:h-12 object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                />
               ))}
             </div>
           </motion.div>

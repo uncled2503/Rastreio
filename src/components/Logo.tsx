@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import logoSvg from '@/assets/logo.svg';
+import logoPng from '@/assets/logo.png';
 
 interface LogoProps {
   className?: string;
@@ -11,15 +11,15 @@ interface LogoProps {
 const Logo = ({ className = "", size = 'md' }: LogoProps) => {
   const sizes = {
     sm: "h-8",
-    md: "h-10",
-    lg: "h-12"
+    md: "h-12",
+    lg: "h-16"
   };
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <img 
-        src={logoSvg} 
-        alt="TrackPro Logo" 
+        src={logoPng} 
+        alt="Rastrear Logo" 
         className={`${sizes[size]} w-auto object-contain`}
       />
     </div>

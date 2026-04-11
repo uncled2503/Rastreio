@@ -54,9 +54,9 @@ export const AntiFraudModal = () => {
 
                 <div className="w-full space-y-3 text-left bg-zinc-50 dark:bg-zinc-800/50 p-6 rounded-2xl border border-zinc-100 dark:border-zinc-700">
                   {[
-                    "Nunca cobramos taxas extras para liberar encomendas",
-                    "Não solicitamos downloads de aplicativos suspeitos",
-                    "Não pedimos documentos sensíveis após o cadastro"
+                    "Confira sempre se o link acessado é o oficial da nossa plataforma",
+                    "Não solicitamos downloads de aplicativos suspeitos por SMS",
+                    "Proteja seus dados e nunca compartilhe senhas de acesso"
                   ].map((item, idx) => (
                     <div key={idx} className="flex items-start gap-3">
                       <CheckCircle2 className="text-green-500 shrink-0 mt-0.5" size={18} />

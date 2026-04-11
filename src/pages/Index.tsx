@@ -34,8 +34,17 @@ const Index = () => {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!trackingCode || trackingCode.length < 5) {
-      showError("Por favor, insira um código de rastreio válido.");
+    
+    // Validação do padrão: BR + 4 dígitos + 1 letra + 3 dígitos + BR
+    const trackingPattern = /^BR\d{4}[A-Z]\d{3}BR$/i;
+    
+    if (!trackingCode) {
+      showError("Por favor, insira um código de rastreio.");
+      return;
+    }
+
+    if (!trackingPattern.test(trackingCode)) {
+      showError("Formato inválido. Use o padrão BR0000X000BR");
       return;
     }
 
@@ -163,9 +172,10 @@ const Index = () => {
                   <Search className="text-zinc-400 shrink-0" size={24} />
                   <input 
                     type="text" 
-                    placeholder="Cole seu código de rastreio aqui..."
+                    placeholder="Ex: BR1234A567BR"
                     className="w-full h-14 md:h-16 outline-none text-lg font-medium text-zinc-800 placeholder:text-zinc-400"
                     value={trackingCode}
+                    maxLength={13}
                     onChange={(e) => setTrackingCode(e.target.value.toUpperCase())}
                   />
                 </div>

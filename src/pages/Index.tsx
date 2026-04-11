@@ -88,10 +88,196 @@ const Index = () => {
   ];
 
   const carriers = [
-    { name: 'Correios', logo: correiosLogo },
-    { name: 'Jadlog', logo: jadlogLogo },
-    { name: 'Loggi', logo: loggiLogo },
-    { name: 'Total Express', logo: totalExpressLogo },
+    { name: 'Correios', logo: correiosLogo, scale: "scale-125" },
+    { name: 'Jadlog', logo: jadlogLogo, scale: "scale-100" },
+    { name: 'Loggi', logo: loggiLogo, scale: "scale-110" },
+    { name: 'Total Express', logo: totalExpressLogo, scale: "scale-100" },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] text-zinc-900 overflow-x-hidden font-sans scroll-smooth">
+      <AntiFraudModal />
+      
+      {/* Navbar */}
+      <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-zinc-100">
+        <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+          <div className="cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+            <Logo size="md" />
+          </div>
+          
+          <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-zinc-600">
+            <button onClick={() => scrollToSection('como-funciona')} className="hover:text-green-600 transition-colors">Como funciona</button>
+            <button onClick={() => scrollToSection('transportadoras')} className="hover:text-green-600 transition-colors">Transportadoras</button>
+            <button onClick={() => scrollToSection('planos')} className="hover:text-green-600 transition-colors">Planos</button>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" className="font-bold text-zinc-700 hover:text-green-600">Entrar</Button>
+            <Button className="bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl px-6">CADASTRE-SE</Button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-4">
+        <div className="container mx-auto max-w-6xl text-center relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-full text-sm font-bold mb-6 border border-green-100"
+          >
+            <Zap size={16} />
+            Rastreamento em Tempo Real
+          </motion.div>
+          
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-4xl md:text-7xl font-black text-zinc-900 mb-6 leading-tight"
+          >
+            Rastreie suas encomendas <br className="hidden md:block" /> 
+            <span className="text-green-600">em segundos.</span>
+          </motion.h1>
+          
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-lg md:text-xl text-zinc-500 mb-12 max-w-2xl mx-auto font-medium"
+          >
+            Acompanhe pedidos de qualquer transportadora em um só lugar. Centralize suas compras e receba alertas automáticos.
+          </motion.p>
+
+          {/* Search Box */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="w-full max-w-3xl mx-auto"
+          >
+            <form onSubmit={handleSearch} className="relative group">
+              <div className="absolute inset-0 bg-green-400/20 blur-2xl group-hover:bg-green-400/30 transition-all rounded-3xl" />
+              <div className="relative flex flex-col md:flex-row gap-3 p-3 bg-white border-2 border-zinc-100 rounded-3xl shadow-2xl overflow-hidden">
+                <div className="flex-1 flex items-center px-4 gap-3">
+                  <Search className="text-zinc-400 shrink-0" size={24} />
+                  <input 
+                    type="text" 
+                    placeholder="Cole seu código de rastreio aqui..."
+                    className="w-full h-14 md:h-16 outline-none text-lg font-medium text-zinc-800 placeholder:text-zinc-400"
+                    value={trackingCode}
+                    onChange={(e) => setTrackingCode(e.target.value.toUpperCase())}
+                  />think
+The user is pointing out that the previous response was cut off. I need to complete the `<dyad-write>` block for `src/pages/Index.tsx` and follow through with the other requirements (concise summary, chat title).
+
+Looking at the previous turn, the code for `src/pages/Index.tsx` stopped at:
+```tsx
+                    onChange={(e) => setTrackingCode(e.target.value.toUpperCase())}
+                  />
+```
+
+I need to finish the file from that point onwards, ensuring all logic (search, carriers display with updated sizes/ratios) is correct as requested ("tamanhos mais conexos na versão mobile").
+
+Specifically, I'll update the carrier logo display section to be more responsive and balanced as requested.
+
+Plan:
+1. Finish the `src/pages/Index.tsx` file.
+2. Provide a concise summary.
+3. Provide the chat title in `<dyad-chat-summary>`.<dyad-write path="src/pages/Index.tsx" description="Finalizando ajuste do equilíbrio visual das logos das transportadoras no mobile">
+"use client";
+
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { 
+  Search, 
+  Truck, 
+  Bell, 
+  History, 
+  ShieldCheck, 
+  HelpCircle, 
+  ArrowRight,
+  PackageCheck,
+  Zap,
+  Check,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AntiFraudModal } from '@/components/AntiFraudModal';
+import { TrackingResult } from '@/components/TrackingResult';
+import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+import Logo from '@/components/Logo';
+
+// Logos de transportadoras
+import correiosLogo from '@/assets/correios.png';
+import jadlogLogo from '@/assets/jadlog.png';
+import loggiLogo from '@/assets/loggi.png';
+import totalExpressLogo from '@/assets/total-express.png';
+
+const Index = () => {
+  const [trackingCode, setTrackingCode] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResult, setShowResult] = useState(false);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!trackingCode || trackingCode.length < 5) {
+      showError("Por favor, insira um código de rastreio válido.");
+      return;
+    }
+
+    setIsSearching(true);
+    const loadingId = showLoading("Buscando informações da sua encomenda...");
+    
+    // Simulação de delay de API
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    dismissToast(loadingId);
+    setIsSearching(false);
+    setShowResult(true);
+    showSuccess("Encomenda localizada com sucesso!");
+    
+    // Scroll suave para o resultado
+    setTimeout(() => {
+      window.scrollTo({ top: 500, behavior: 'smooth' });
+    }, 100);
+  };
+
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      const offset = 100; // Compensação para a navbar fixa
+      const bodyRect = document.body.getBoundingClientRect().top;
+      const elementRect = element.getBoundingClientRect().top;
+      const elementPosition = elementRect - bodyRect;
+      const offsetPosition = elementPosition - offset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const mockEvents = [
+    {
+      status: "Objeto em trânsito",
+      location: "Unidade de Tratamento, CAJAMAR - SP",
+      date: "12/05/2024 às 14:20",
+      description: "Encaminhado para Unidade de Distribuição local."
+    },
+    {
+      status: "Objeto postado",
+      location: "Agência dos Correios, CURITIBA - PR",
+      date: "10/05/2024 às 09:15",
+      description: "O objeto foi postado pelo remetente e está a caminho."
+    }
+  ];
+
+  const carriers = [
+    { name: 'Correios', logo: correiosLogo, scale: "scale-100" },
+    { name: 'Jadlog', logo: jadlogLogo, scale: "scale-100" },
+    { name: 'Loggi', logo: loggiLogo, scale: "scale-100" },
+    { name: 'Total Express', logo: totalExpressLogo, scale: "scale-100" },
   ];
 
   return (
@@ -189,14 +375,15 @@ const Index = () => {
             className="mt-16 pt-8"
           >
             <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-8">Compatível com +100 transportadoras</p>
-            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-60">
+            <div className="grid grid-cols-2 md:flex md:flex-wrap justify-center items-center gap-x-8 gap-y-10 md:gap-16 px-4">
               {carriers.map((carrier) => (
-                <img 
-                  key={carrier.name} 
-                  src={carrier.logo} 
-                  alt={carrier.name} 
-                  className="h-8 md:h-12 object-contain grayscale hover:grayscale-0 transition-all duration-300"
-                />
+                <div key={carrier.name} className="flex items-center justify-center h-10 md:h-14">
+                  <img 
+                    src={carrier.logo} 
+                    alt={carrier.name} 
+                    className={`max-h-full w-auto object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-300 ${carrier.scale}`}
+                  />
+                </div>
               ))}
             </div>
           </motion.div>
@@ -399,7 +586,7 @@ const Index = () => {
             
             <div className="flex flex-wrap gap-8 text-sm font-bold text-zinc-500 uppercase tracking-widest">
               <Link to="/termos" className="hover:text-green-600 transition-colors">Termos de Uso</Link>
-              <Link to="/privacidade" className="hover:text-green-600 transition-colors">Privacidade</Link>
+              <Link to="/privacidade" className="hover:text-green-600 transition-colors">Privacy</Link>
               <Link to="/afiliados" className="hover:text-green-600 transition-colors">Afiliados</Link>
               <Link to="/suporte" className="hover:text-green-600 transition-colors">Suporte</Link>
             </div>

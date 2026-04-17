@@ -20,6 +20,8 @@ import { AntiFraudModal } from '@/components/AntiFraudModal';
 import { TrackingResult } from '@/components/TrackingResult';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import Logo from '@/components/Logo';
+import { supabase } from '@/integrations/supabase/client';
+import { generateTimeline, type TrackingEvent } from '@/utils/tracking';
 
 // Logos de transportadoras
 import correiosLogo from '@/assets/correios.png';
@@ -31,6 +33,7 @@ const Index = () => {
   const [trackingCode, setTrackingCode] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [showResult, setShowResult] = useState(false);
+  const [events, setEvents] = useState<TrackingEvent[]>([]);
 
   // Função para formatar e validar a entrada em tempo real
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,8 +47,8 @@ const Index = () => {
       return;
     }
 
-    // Limita o tamanho máximo
-    if (value.length > 13) return;
+    // Limita o tamanho máximo do padrão (BR + 4 num + 1 letra + 3 num + BR = 12 caracteres)
+    if (value.length > 12) return;
 
     // Regras por posição
     const isDigit = (c: string) => /\d/.test(c);
@@ -77,21 +80,66 @@ const Index = () => {
     setIsSearching(true);
     const loadingId = showLoading("Buscando informações da sua encomenda...");
     
-    // Simulação de delay de API
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    dismissToast(loadingId);
-    setIsSearching(false);
-    setShowResult(true);
-    showSuccess("Encomenda localizada com sucesso!");
-    
-    // Scroll suave para o resultado
-    setTimeout(() => {
-      const resultElement = document.getElementById('tracking-result');
-      if (resultElement) {
-        resultElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    try {
+      // 1. Busca na tabela vendas (usando pedido_codigo como o rastreio)
+      const { data: venda, error: vendaError } = await supabase
+        .from('vendas')
+        .select('*')
+        .eq('pedido_codigo', trackingCode)
+        .maybeSingle();
+
+      if (vendaError) throw vendaError;
+
+      if (!venda) {
+        showError("Encomenda não encontrada em nosso sistema.");
+        return;
       }
-    }, 100);
+
+      // Valores padrões de fallback
+      let cidade = "São Paulo";
+      let estado = "SP";
+
+      // 2. Tenta buscar informações adicionais da tabela leads para cidade e estado
+      if (venda.lead_id) {
+        const { data: lead } = await supabase
+          .from('leads')
+          .select('cidade, estado')
+          .eq('id', venda.lead_id)
+          .maybeSingle();
+        
+        if (lead) {
+          cidade = lead.cidade || cidade;
+          estado = lead.estado || estado;
+        }
+      }
+
+      // 3. Gera a linha do tempo passando os dados (incluindo o created_at do pedido)
+      const timeline = generateTimeline(
+        trackingCode, 
+        cidade, 
+        estado, 
+        venda.created_at || new Date().toISOString()
+      );
+      
+      setEvents(timeline);
+      setShowResult(true);
+      showSuccess("Encomenda localizada com sucesso!");
+
+      // Scroll suave para o resultado
+      setTimeout(() => {
+        const resultElement = document.getElementById('tracking-result');
+        if (resultElement) {
+          resultElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+
+    } catch (err) {
+      console.error("Erro na busca:", err);
+      showError("Ocorreu um erro ao comunicar com a base de dados.");
+    } finally {
+      dismissToast(loadingId);
+      setIsSearching(false);
+    }
   };
 
   const scrollToSection = (id: string) => {
@@ -109,21 +157,6 @@ const Index = () => {
       });
     }
   };
-
-  const mockEvents = [
-    {
-      status: "Objeto em trânsito",
-      location: "Unidade de Tratamento, CAJAMAR - SP",
-      date: "12/05/2024 às 14:20",
-      description: "Encaminhado para Unidade de Distribuição local."
-    },
-    {
-      status: "Objeto postado",
-      location: "Agência dos Correios, CURITIBA - PR",
-      date: "10/05/2024 às 09:15",
-      description: "O objeto foi postado pelo remetente e está a caminho."
-    }
-  ];
 
   const carriers = [
     { name: 'Correios', logo: correiosLogo, scale: "scale-100" },
@@ -204,6 +237,7 @@ const Index = () => {
                     placeholder="BR0000A000BR"
                     className="w-full h-14 md:h-16 outline-none text-lg font-mono font-bold tracking-widest text-zinc-800 placeholder:text-zinc-300"
                     value={trackingCode}
+                    maxLength={12}
                     onChange={handleInputChange}
                   />
                 </div>
@@ -244,7 +278,7 @@ const Index = () => {
 
       {/* Result Section */}
       <div id="tracking-result">
-        {showResult && <TrackingResult code={trackingCode} data={mockEvents} />}
+        {showResult && <TrackingResult code={trackingCode} data={events} />}
       </div>
 
       {/* Benefits Section */}

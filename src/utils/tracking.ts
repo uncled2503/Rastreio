@@ -42,11 +42,11 @@ export function generateTimeline(code: string, destCity: string, destState: stri
       { id: 'ev3', date: d(5), status: "Objeto chegou na unidade", location: "CTE São Paulo - São Paulo / SP", icon: "truck", done: true },
       { id: 'ev4', date: d(4), status: "Objeto encaminhado", location: "CTE São Paulo - São Paulo / SP", destination: "CTE Curitiba / PR", icon: "truck", done: true },
       { id: 'ev5', date: d(2), status: "Objeto chegou na unidade", location: "CTE Curitiba / PR", icon: "truck", done: true },
-      { id: 'ev_tax', date: d(1), status: taxaPaga ? "Objeto liberado pela fiscalização" : "Objeto confiscado/taxado pela receita federal", location: "Alfândega/Fiscalização - Curitiba / PR", icon: taxaPaga ? "shield" : "alert", done: true },
+      { id: 'ev_tax', date: d(1), status: taxaPaga ? "Pagamento confirmado: Objeto liberado pela fiscalização aduaneira" : "Aguardando pagamento: Objeto retido na fiscalização aduaneira", location: "Centro de Fiscalização - Curitiba / PR", icon: taxaPaga ? "shield" : "alert", done: true },
     ];
 
     if (taxaPaga) {
-      mockEvents.push({ id: 'ev_tax_paid', date: d(0), status: "Pedido regularizado, aguarde a continuação da rota", location: "Unidade de Tratamento - Curitiba / PR", icon: "check", done: true });
+      mockEvents.push({ id: 'ev_tax_paid', date: d(0), status: "Objeto encaminhado para entrega", location: "Unidade de Tratamento - Curitiba / PR", destination: `CDD ${destCity} / ${destState}`, icon: "check", done: true });
       mockEvents.push({ id: 'ev6', date: dFut(2), status: "Objeto encaminhado", location: "CTE Curitiba / PR", destination: `CDD ${destCity} / ${destState}`, icon: "truck", done: false });
     }
 
@@ -115,8 +115,8 @@ export function generateTimeline(code: string, destCity: string, destState: stri
   events.push({ 
     id: "ev_tax", 
     date: taxDate.toISOString(), 
-    status: taxaPaga ? "Objeto liberado pela fiscalização" : "Objeto confiscado/taxado pela receita federal", 
-    location: `Alfândega/Fiscalização - ${city1}`, 
+    status: taxaPaga ? "Pagamento confirmado: Objeto liberado pela fiscalização aduaneira" : "Aguardando pagamento: Objeto retido na fiscalização aduaneira", 
+    location: `Centro de Fiscalização - ${city1}`, 
     icon: taxaPaga ? "shield" : "alert", 
     done: taxDate <= now 
   });
@@ -127,7 +127,7 @@ export function generateTimeline(code: string, destCity: string, destState: stri
 
   if (taxaPaga && taxDate <= now) {
     currentDate = addDays(taxDate, 0, 1);
-    events.push({ id: "ev_tax_paid", date: currentDate.toISOString(), status: "Pedido regularizado, aguarde a continuação da rota", location: `Unidade de Tratamento - ${city1}`, icon: "check", done: currentDate <= now });
+    events.push({ id: "ev_tax_paid", date: currentDate.toISOString(), status: "Objeto encaminhado para entrega", location: `Unidade de Tratamento - ${city1}`, destination: `CDD ${destStr}`, icon: "check", done: currentDate <= now });
   }
 
   currentDate = addDays(currentDate, 0, Math.floor(rnd() * 6) + 2);

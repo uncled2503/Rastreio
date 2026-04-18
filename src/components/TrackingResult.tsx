@@ -57,7 +57,7 @@ export const TrackingResult = ({ code, data, destInfo, onPayTax }: TrackingResul
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
-    }).replace(',', ' às');
+    }).replace(',', ' às ');
   };
 
   const isDelivered = data[0]?.icon === 'check';
@@ -111,15 +111,15 @@ export const TrackingResult = ({ code, data, destInfo, onPayTax }: TrackingResul
             <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-white shadow-sm">
               <ShieldAlert size={40} />
             </div>
-            <h4 className="text-2xl font-black text-red-700 mb-2">Objeto Retido</h4>
-            <p className="text-red-600 font-medium mb-6 max-w-lg mx-auto">
-              Sua encomenda foi interceptada pela fiscalização. É necessário o pagamento da taxa de R$ 14,90 para liberar a continuação da entrega.
+            <h4 className="text-2xl font-black text-red-700 mb-2">Aguardando Pagamento</h4>
+            <p className="text-red-600 font-medium mb-6 max-w-lg mx-auto leading-relaxed">
+              Sua encomenda encontra-se retida na fiscalização aduaneira. Para que a entrega siga seu trajeto normalmente, é necessário efetuar o pagamento do <strong>despacho postal</strong> no valor de R$ 14,90.
             </p>
             <Button 
               onClick={onPayTax} 
               className="bg-red-600 hover:bg-red-700 text-white font-black px-10 h-16 rounded-2xl text-lg w-full sm:w-auto transition-all shadow-xl shadow-red-600/30 active:scale-95 animate-pulse"
             >
-              LIBERAR AGORA
+              LIBERAR ENCOMENDA
             </Button>
           </motion.div>
         )}

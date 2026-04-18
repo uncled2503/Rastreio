@@ -56,10 +56,11 @@ export const TrackingResult = ({ code, data, destCity, destState }: TrackingResu
   const originStr = originParts.length > 1 ? originParts[1] : originFullString;
 
   // Calculando strings reais que vão aparecer na tela de Destino (para remover barras vazias)
-  const destString = destCity ? `${destCity}${destState ? ` / ${destState}` : ''}` : 'Endereço do Destinatário';
+  const destString = destCity ? `${destCity}${destState ? ` / ${destState}` : ''}` : 'Seu endereço';
 
   // Gerando os CEPs
   const originCEP = generateCEP(originStr + code);
+  // Se for "Seu endereço" (sem cidade no banco), usa a própria string de fallback para gerar o CEP.
   const destCEP = generateCEP(destCity + destState + code);
 
   // Calculando o progresso para a barra animada (entre 15% e 100%)

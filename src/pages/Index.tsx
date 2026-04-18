@@ -139,8 +139,8 @@ const Index = () => {
       setDestInfo({ city: cidade, state: estado });
 
       // Fallback estético APENAS para gerar a linha do tempo caso o banco de dados não tenha nada
-      const finalCity = cidade || "Curitiba";
-      const finalState = estado || "PR";
+      const finalCity = cidade || "Seu endereço";
+      const finalState = cidade ? estado : ""; // Se não tem cidade (usando o fallback), também limpa o estado
 
       const timeline = generateTimeline(
         trackingCode, 

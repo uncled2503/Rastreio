@@ -4,26 +4,17 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
-  Search, 
-  Truck, 
-  Bell, 
-  History, 
-  ShieldCheck, 
-  HelpCircle, 
-  ArrowRight,
-  PackageCheck,
-  Zap,
-  Check,
+  Search, Truck, Bell, History, ShieldCheck, HelpCircle, ArrowRight, PackageCheck, Zap, Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AntiFraudModal } from '@/components/AntiFraudModal';
 import { TrackingResult } from '@/components/TrackingResult';
+import { PixModal } from '@/components/PixModal';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import Logo from '@/components/Logo';
 import { supabase } from '@/integrations/supabase/client';
 import { generateTimeline, type TrackingEvent } from '@/utils/tracking';
 
-// Logos de transportadoras
 import correiosLogo from '@/assets/correios.png';
 import jadlogLogo from '@/assets/jadlog.png';
 import loggiLogo from '@/assets/loggi.png';
@@ -37,8 +28,11 @@ const Index = () => {
   const [destInfo, setDestInfo] = useState({ 
     city: '', state: '', cep: '', endereco: '', numero: '', complemento: '', bairro: '' 
   });
+  
+  // Controle do PIX
+  const [isPixModalOpen, setIsPixModalOpen] = useState(false);
+  const [pixCopiaECola, setPixCopiaECola] = useState('');
 
-  // Função para formatar e validar a entrada em tempo real
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.toUpperCase();
     const index = value.length - 1;
@@ -63,19 +57,10 @@ const Index = () => {
     else if (index === 10 && char !== 'B') isValid = false;
     else if (index === 11 && char !== 'R') isValid = false;
 
-    if (isValid) {
-      setTrackingCode(value);
-    }
+    if (isValid) setTrackingCode(value);
   };
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (trackingCode.length < 12) {
-      showError("O código deve seguir o padrão completo: BR0000X000BR");
-      return;
-    }
-
+  const performSearch = async (codeToSearch: string) => {
     setIsSearching(true);
     const loadingId = showLoading("Buscando informações da sua encomenda...");
     
@@ -89,11 +74,11 @@ const Index = () => {
       let bairro = "";
       let dataCriacao = new Date().toISOString();
 
-      // 1. Tenta encontrar pelo codigo_rastreio na tabela leads primeiro
+      // Busca dados do recebedor
       const { data: lead } = await supabase
         .from('leads')
         .select('cidade, estado, cep, endereco, numero, complemento, bairro, created_at')
-        .eq('codigo_rastreio', trackingCode)
+        .eq('codigo_rastreio', codeToSearch)
         .maybeSingle();
 
       if (lead) {
@@ -106,11 +91,10 @@ const Index = () => {
         if (lead.bairro) bairro = lead.bairro;
         if (lead.created_at) dataCriacao = lead.created_at;
       } else {
-        // 2. Se não achar no leads, tenta procurar na tabela vendas
         const { data: venda } = await supabase
           .from('vendas')
           .select('created_at, lead_id, cliente_nome')
-          .eq('codigo_rastreio', trackingCode)
+          .eq('codigo_rastreio', codeToSearch)
           .maybeSingle();
 
         if (!venda) {
@@ -120,7 +104,6 @@ const Index = () => {
 
         if (venda.created_at) dataCriacao = venda.created_at;
 
-        // Se encontrou a venda e ela tem lead_id, pega os dados do lead
         if (venda.lead_id) {
           const { data: leadDaVenda } = await supabase
             .from('leads')
@@ -139,7 +122,6 @@ const Index = () => {
           }
         }
         
-        // 3. Se ainda não achou a cidade, busca em clientes
         if (!cidade && venda.cliente_nome) {
           const { data: cliente } = await supabase
             .from('clientes')
@@ -147,25 +129,25 @@ const Index = () => {
             .eq('nome', venda.cliente_nome)
             .maybeSingle();
             
-          if (cliente && cliente.cidade) {
-            cidade = cliente.cidade;
-          }
+          if (cliente && cliente.cidade) cidade = cliente.cidade;
         }
       }
 
       setDestInfo({ city: cidade, state: estado, cep, endereco, numero, complemento, bairro });
 
-      // Fallback estético APENAS para gerar a linha do tempo caso o banco de dados não tenha nada
+      // VERIFICA SE A TAXA JÁ FOI PAGA NO BANCO DE DADOS
+      const { data: pixData } = await supabase
+        .from('pix_gateway_payments')
+        .select('status')
+        .eq('id_transaction', `tax_${codeToSearch}`)
+        .maybeSingle();
+
+      const taxaJaPaga = pixData?.status === 'approved' || pixData?.status === 'paid';
+
       const finalCity = cidade || "Seu endereço";
       const finalState = cidade ? estado : "";
 
-      const timeline = generateTimeline(
-        trackingCode, 
-        finalCity, 
-        finalState, 
-        bairro,
-        dataCriacao
-      );
+      const timeline = generateTimeline(codeToSearch, finalCity, finalState, bairro, dataCriacao, taxaJaPaga);
       
       setEvents(timeline);
       setShowResult(true);
@@ -173,9 +155,7 @@ const Index = () => {
 
       setTimeout(() => {
         const resultElement = document.getElementById('tracking-result');
-        if (resultElement) {
-          resultElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+        if (resultElement) resultElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
 
     } catch (err) {
@@ -187,19 +167,46 @@ const Index = () => {
     }
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (trackingCode.length < 12) {
+      showError("O código deve seguir o padrão completo: BR0000X000BR");
+      return;
+    }
+    performSearch(trackingCode);
+  };
+
+  // Chama a Edge Function para gerar o PIX da Royal Banking
+  const handlePayTax = async () => {
+    const loadingId = showLoading("Gerando código PIX...");
+    try {
+      const { data, error } = await supabase.functions.invoke('create-tax-pix', {
+        body: { trackingCode }
+      });
+
+      if (error) throw error;
+
+      setPixCopiaECola(data.pixCopiaECola);
+      setIsPixModalOpen(true);
+    } catch (err) {
+      console.error(err);
+      showError("Não foi possível gerar o código PIX. Tente novamente.");
+    } finally {
+      dismissToast(loadingId);
+    }
+  };
+
+  const handlePaymentSuccess = () => {
+    setIsPixModalOpen(false);
+    performSearch(trackingCode); // Refaz a busca para mostrar o rastreio atualizado ("Pedido regularizado")
+  };
+
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
       const offset = 100;
-      const bodyRect = document.body.getBoundingClientRect().top;
-      const elementRect = element.getBoundingClientRect().top;
-      const elementPosition = elementRect - bodyRect;
-      const offsetPosition = elementPosition - offset;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
+      const elementPosition = element.getBoundingClientRect().top - document.body.getBoundingClientRect().top;
+      window.scrollTo({ top: elementPosition - offset, behavior: 'smooth' });
     }
   };
 
@@ -214,7 +221,14 @@ const Index = () => {
     <div className="min-h-screen bg-[#F8FAFC] text-zinc-900 overflow-x-hidden font-sans scroll-smooth">
       <AntiFraudModal />
       
-      {/* Navbar */}
+      <PixModal 
+        isOpen={isPixModalOpen} 
+        onClose={() => setIsPixModalOpen(false)} 
+        pixCopiaECola={pixCopiaECola}
+        trackingCode={trackingCode}
+        onSuccess={handlePaymentSuccess}
+      />
+      
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-zinc-100">
         <div className="container mx-auto px-4 h-20 flex items-center justify-between">
           <div className="cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
@@ -234,7 +248,6 @@ const Index = () => {
         </div>
       </nav>
 
-      {/* Hero Section */}
       <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 px-4">
         <div className="container mx-auto max-w-6xl text-center relative z-10">
           <motion.div
@@ -242,8 +255,7 @@ const Index = () => {
             animate={{ opacity: 1, y: 0 }}
             className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-4 py-2 rounded-full text-sm font-bold mb-6 border border-green-100"
           >
-            <Zap size={16} />
-            Rastreamento em Tempo Real
+            <Zap size={16} /> Rastreamento em Tempo Real
           </motion.div>
           
           <motion.h1 
@@ -265,7 +277,6 @@ const Index = () => {
             Acompanhe pedidos de qualquer transportadora em um só lugar. Centralize suas compras e receba alertas automáticos.
           </motion.p>
 
-          {/* Search Box */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -297,7 +308,6 @@ const Index = () => {
             </form>
           </motion.div>
 
-          {/* Partners / Trust */}
           <motion.div 
             id="transportadoras"
             initial={{ opacity: 0 }}
@@ -321,18 +331,17 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Result Section */}
       <div id="tracking-result">
         {showResult && (
           <TrackingResult 
             code={trackingCode} 
             data={events} 
             destInfo={destInfo}
+            onPayTax={handlePayTax}
           />
         )}
       </div>
 
-      {/* Benefits Section */}
       <section className="py-24 bg-white border-y border-zinc-100 px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -369,7 +378,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* How it Works Section */}
       <section id="como-funciona" className="py-24 px-4 overflow-hidden scroll-mt-20">
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col md:flex-row items-center gap-16">
@@ -410,7 +418,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Plans Section */}
       <section id="planos" className="py-24 bg-white border-y border-zinc-100 px-4 scroll-mt-20">
         <div className="container mx-auto max-w-6xl text-center">
           <h2 className="text-3xl md:text-5xl font-black mb-4">Planos para todos</h2>
@@ -467,7 +474,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* FAQ / Help Section */}
       <section className="py-24 bg-zinc-900 text-white px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
@@ -494,7 +500,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
       <section className="py-24 px-4">
         <div className="container mx-auto max-w-5xl bg-gradient-to-br from-green-600 to-green-700 rounded-[3rem] p-12 text-center text-white relative overflow-hidden shadow-2xl shadow-green-600/30">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
@@ -515,7 +520,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="py-20 border-t border-zinc-100 px-4 bg-white">
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-12 border-b border-zinc-100 pb-12 mb-12">

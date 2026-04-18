@@ -4,33 +4,26 @@ export type TrackingEvent = {
   status: string;
   location: string;
   destination?: string;
-  icon: "package" | "truck" | "check";
+  icon: "package" | "truck" | "check" | "alert" | "shield";
   done: boolean;
 };
 
 const CIDADES = [
   "São Paulo", "Rio de Janeiro", "Belo Horizonte", "Brasília", "Salvador", "Fortaleza", "Recife", "Curitiba", "Porto Alegre", "Goiânia",
-  "Belém", "Manaus", "São Luís", "Maceió", "Natal", "João Pessoa", "Aracaju", "Teresina", "Campo Grande", "Cuiabá",
-  "Palmas", "Rio Branco", "Macapá", "Boa Vista", "Vitória", "Florianópolis", "Campinas", "Santos", "Ribeirão Preto", "Uberlândia",
-  "Contagem", "Juiz de Fora", "Londrina", "Maringá", "Joinville", "Caxias do Sul", "Pelotas", "Feira de Santana", "Caruaru", "Petrolina",
-  "Anápolis", "Aparecida de Goiânia", "São José dos Campos", "Sorocaba", "Piracicaba", "Bauru", "Montes Claros", "Governador Valadares", "Ipatinga", "Betim",
-  "Uberaba", "São João del-Rei", "Tiradentes", "Barbacena", "Lavras", "Divinópolis", "Conselheiro Lafaiete", "Ouro Preto", "Mariana", "Sete Lagoas",
-  "Pará de Minas", "Varginha", "Poços de Caldas", "Pouso Alegre", "Itajubá"
+  "Belém", "Manaus", "São Luís", "Maceió", "Natal", "João Pessoa", "Aracaju", "Teresina", "Campo Grande", "Cuiabá"
 ];
 
 const FRANQUIAS = [
   "Expresso Correios", "Rápido Centro", "Postal Brasil", "Minas Express", "Log Express",
-  "Envio Fácil", "Entrega Já", "Prime Correios", "Brasil Encomendas", "Fácil Post",
-  "São Sebastião", "Santo Antônio", "Santa Rita", "Bom Jesus", "São José"
+  "Envio Fácil", "Entrega Já", "Prime Correios"
 ];
 
 const BAIRROS = [
   "Centro", "Centro Histórico", "Zona Norte", "Zona Sul", "Zona Leste", "Zona Oeste",
-  "Industrial", "Distrito Industrial", "Vila Nova", "Jardim América", "Jardim Europa",
-  "Bela Vista", "Boa Vista", "Copacabana", "Ipanema", "Barra da Tijuca", "Savassi", "Funcionários", "Pampulha"
+  "Industrial", "Bela Vista", "Boa Vista", "Copacabana", "Ipanema", "Barra da Tijuca", "Savassi"
 ];
 
-export function generateTimeline(code: string, destCity: string, destState: string, destBairro: string, startDateIso: string): TrackingEvent[] {
+export function generateTimeline(code: string, destCity: string, destState: string, destBairro: string, startDateIso: string, taxaPaga: boolean = false): TrackingEvent[] {
   let seedValue = 0;
   for (let i = 0; i < code.length; i++) {
     seedValue = (Math.imul(31, seedValue) + code.charCodeAt(i)) | 0;
@@ -48,7 +41,6 @@ export function generateTimeline(code: string, destCity: string, destState: stri
 
   const city1 = CIDADES[Math.floor(rnd() * CIDADES.length)];
   const franquia = FRANQUIAS[Math.floor(rnd() * FRANQUIAS.length)];
-  // Usa o bairro real se disponível, caso contrário gera um aleatório determinístico
   const bairro = destBairro || BAIRROS[Math.floor(rnd() * BAIRROS.length)];
 
   const addDays = (date: Date, days: number, hours: number) => {
@@ -62,40 +54,19 @@ export function generateTimeline(code: string, destCity: string, destState: stri
 
   const events: TrackingEvent[] = [];
   
-  // 1. EVENTO INICIAL: Código gerado (Aparece imediatamente)
-  events.push({ 
-    id: "ev0", 
-    date: start.toISOString(), 
-    status: "Código de rastreio cadastrado, aguardando postagem", 
-    location: `ACF ${franquia} - São Paulo / SP`, 
-    icon: "package", 
-    done: true // Sempre true, pois a data de criação já passou
-  });
+  events.push({ id: "ev0", date: start.toISOString(), status: "Código de rastreio cadastrado, aguardando postagem", location: `ACF ${franquia} - São Paulo / SP`, icon: "package", done: true });
 
-  // 2. CALCULAR DATA DE POSTAGEM: Próximo dia útil a partir das 07:00h
   let postDate = new Date(start);
-  postDate.setDate(postDate.getDate() + 1); // Avança pelo menos 1 dia
-  
-  // Pula sábado (6) e domingo (0)
+  postDate.setDate(postDate.getDate() + 1);
   while (postDate.getDay() === 0 || postDate.getDay() === 6) { 
     postDate.setDate(postDate.getDate() + 1);
   }
-  // Define o horário de postagem entre 07:00 e 10:59 da manhã
   postDate.setHours(7 + Math.floor(rnd() * 4), Math.floor(rnd() * 60), 0);
 
   let currentDate = new Date(postDate);
 
-  // 3. EVENTO DE POSTAGEM REAL (Aparece apenas quando a data for alcançada)
-  events.push({ 
-    id: "ev1", 
-    date: currentDate.toISOString(), 
-    status: "Objeto postado", 
-    location: `ACF ${franquia} - São Paulo / SP`, 
-    icon: "package", 
-    done: currentDate <= now 
-  });
+  events.push({ id: "ev1", date: currentDate.toISOString(), status: "Objeto postado", location: `ACF ${franquia} - São Paulo / SP`, icon: "package", done: currentDate <= now });
 
-  // O restante dos eventos seguem normalmente, baseados na data de postagem real
   currentDate = addDays(currentDate, 0, Math.floor(rnd() * 4) + 1);
   events.push({ id: "ev2", date: currentDate.toISOString(), status: "Objeto encaminhado", location: `ACF ${franquia} - São Paulo / SP`, destination: `CTE São Paulo - São Paulo / SP`, icon: "truck", done: currentDate <= now });
 
@@ -107,6 +78,30 @@ export function generateTimeline(code: string, destCity: string, destState: stri
 
   currentDate = addDays(currentDate, 1, Math.floor(rnd() * 12));
   events.push({ id: "ev5", date: currentDate.toISOString(), status: "Objeto chegou na unidade", location: `CTE ${city1}`, icon: "truck", done: currentDate <= now });
+
+  // EVENTO DE TAXA (Algumas horas após chegar na cidade intermediária)
+  currentDate = addDays(currentDate, 0, Math.floor(rnd() * 4) + 2);
+  const taxDate = new Date(currentDate);
+  
+  events.push({ 
+    id: "ev_tax", 
+    date: taxDate.toISOString(), 
+    status: taxaPaga ? "Objeto liberado pela fiscalização" : "Objeto confiscado/taxado pela receita federal", 
+    location: `Alfândega/Fiscalização - ${city1}`, 
+    icon: taxaPaga ? "shield" : "alert", 
+    done: taxDate <= now 
+  });
+
+  // Se a data da taxa já chegou e NÃO foi paga, travamos a linha do tempo aqui!
+  if (!taxaPaga && taxDate <= now) {
+    return events.filter(e => e.done).reverse();
+  }
+
+  // Se pagou, adicionamos a mensagem de liberação logo após o pagamento
+  if (taxaPaga && taxDate <= now) {
+    currentDate = addDays(taxDate, 0, 1);
+    events.push({ id: "ev_tax_paid", date: currentDate.toISOString(), status: "Pedido regularizado, aguarde a continuação da rota", location: `Unidade de Tratamento - ${city1}`, icon: "check", done: currentDate <= now });
+  }
 
   currentDate = addDays(currentDate, 0, Math.floor(rnd() * 6) + 2);
   events.push({ id: "ev6", date: currentDate.toISOString(), status: "Objeto encaminhado", location: `CTE ${city1}`, destination: `CDD ${destStr}`, icon: "truck", done: currentDate <= now });

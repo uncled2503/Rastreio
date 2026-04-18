@@ -30,12 +30,10 @@ const Index = () => {
     city: '', state: '', cep: '', endereco: '', numero: '', complemento: '', bairro: '' 
   });
   
-  // Controle do PIX de Taxa
   const [isPixModalOpen, setIsPixModalOpen] = useState(false);
   const [pixCopiaECola, setPixCopiaECola] = useState('');
   const [pixTransactionId, setPixTransactionId] = useState('');
 
-  // Controle do PIX de Planos
   const [isPlanPixModalOpen, setIsPlanPixModalOpen] = useState(false);
   const [planPixData, setPlanPixData] = useState({
     pixCopiaECola: '',
@@ -44,7 +42,6 @@ const Index = () => {
     amount: 0
   });
 
-  // Controle de FAQ
   const [selectedFaq, setSelectedFaq] = useState<{title: string, content: string} | null>(null);
 
   const faqs = [
@@ -111,6 +108,8 @@ const Index = () => {
         .from('leads')
         .select('cidade, estado, cep, endereco, numero, complemento, bairro, created_at')
         .eq('codigo_rastreio', codeToSearch)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (lead) {
@@ -127,6 +126,8 @@ const Index = () => {
           .from('vendas')
           .select('created_at, lead_id, cliente_nome')
           .eq('codigo_rastreio', codeToSearch)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .maybeSingle();
 
         if (!venda && codeToSearch !== 'BR1212H271BR') {
@@ -141,6 +142,7 @@ const Index = () => {
             .from('leads')
             .select('cidade, estado, cep, endereco, numero, complemento, bairro')
             .eq('id', venda.lead_id)
+            .limit(1)
             .maybeSingle();
             
           if (leadDaVenda) {
@@ -159,6 +161,7 @@ const Index = () => {
             .from('clientes')
             .select('cidade')
             .eq('nome', venda.cliente_nome)
+            .limit(1)
             .maybeSingle();
             
           if (cliente && cliente.cidade) cidade = cliente.cidade;
@@ -167,13 +170,14 @@ const Index = () => {
 
       setDestInfo({ city: cidade, state: estado, cep, endereco, numero, complemento, bairro });
 
-      const { data: pixData } = await supabase
+      // Busca todos os registros de pagamentos vinculados a esse código em vez de forçar um único com maybeSingle
+      const { data: pixRecords } = await supabase
         .from('pix_gateway_payments')
         .select('status')
-        .contains('raw_payload', { trackingCode: codeToSearch })
-        .maybeSingle();
+        .contains('raw_payload', { trackingCode: codeToSearch });
 
-      const taxaJaPaga = pixData?.status === 'approved' || pixData?.status === 'paid';
+      // Se houver qualquer registro aprovado ou pago, a taxa está quitada
+      const taxaJaPaga = pixRecords?.some(p => p.status === 'approved' || p.status === 'paid') ?? false;
 
       const finalCity = cidade || "Seu endereço";
       const finalState = cidade ? estado : "";
@@ -257,12 +261,12 @@ const Index = () => {
 
   const handlePaymentSuccess = () => {
     setIsPixModalOpen(false);
+    // Refaz a busca para atualizar a linha do tempo!
     performSearch(trackingCode);
   };
 
   const handlePlanPaymentSuccess = () => {
     setIsPlanPixModalOpen(false);
-    // Aqui você pode redirecionar para um dashboard ou exibir algo diferente
   };
 
   const scrollToSection = (id: string) => {

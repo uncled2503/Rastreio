@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
-import { Copy, Check, X, ShieldAlert } from 'lucide-react';
+import { Copy, Check, X, ShieldAlert, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { showSuccess, showError } from '@/utils/toast';
+import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 
 interface PixModalProps {
   isOpen: boolean;
@@ -19,24 +19,26 @@ interface PixModalProps {
 export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, onSuccess }: PixModalProps) => {
   const [copied, setCopied] = useState(false);
 
-  // Polling para verificar se o pagamento foi aprovado (webhook atualiza no banco)
+  // Polling via Edge Function (Ignora o bloqueio RLS do Supabase)
   useEffect(() => {
     if (!isOpen || !transactionId) return;
 
     const checkPayment = async () => {
-      const { data } = await supabase
-        .from('pix_gateway_payments')
-        .select('status')
-        .eq('id_transaction', transactionId)
-        .maybeSingle();
+      try {
+        const { data, error } = await supabase.functions.invoke('check-pix-status', {
+          body: { transactionId }
+        });
 
-      if (data && (data.status === 'approved' || data.status === 'paid')) {
-        showSuccess("Pagamento confirmado com sucesso!");
-        onSuccess();
+        if (!error && data && (data.status === 'approved' || data.status === 'paid')) {
+          showSuccess("Pagamento confirmado com sucesso!");
+          onSuccess();
+        }
+      } catch (err) {
+        console.error("Erro ao checar status do PIX:", err);
       }
     };
 
-    const interval = setInterval(checkPayment, 3000); // Checa a cada 3 segundos
+    const interval = setInterval(checkPayment, 3000);
     return () => clearInterval(interval);
   }, [isOpen, transactionId, onSuccess]);
 
@@ -44,6 +46,20 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, onSucc
     navigator.clipboard.writeText(pixCopiaECola);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSimulatePayment = async () => {
+    const toastId = showLoading("Forçando aprovação via sistema...");
+    try {
+      await supabase.functions.invoke('force-approve-pix', {
+        body: { transactionId }
+      });
+      dismissToast(toastId);
+      // O Polling do useEffect vai detectar a mudança em até 3 segundos e fechar a tela sozinho
+    } catch (err) {
+      dismissToast(toastId);
+      showError("Erro ao simular pagamento");
+    }
   };
 
   return (
@@ -91,11 +107,18 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, onSucc
                 </Button>
               </div>
 
-              <div className="pt-4 border-t border-zinc-100">
+              <div className="pt-4 border-t border-zinc-100 flex flex-col items-center gap-3">
                 <div className="flex items-center justify-center gap-3 text-sm text-zinc-500">
                   <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
                   Aguardando confirmação do pagamento...
                 </div>
+                
+                <button 
+                  onClick={handleSimulatePayment}
+                  className="flex items-center gap-1 text-xs font-semibold text-zinc-400 hover:text-zinc-600 bg-zinc-100 px-3 py-1.5 rounded-full mt-2 transition-colors"
+                >
+                  <Zap size={12} /> Simular Pagamento (Dev)
+                </button>
               </div>
             </div>
           </motion.div>

@@ -130,7 +130,6 @@ const Index = () => {
           .limit(1)
           .maybeSingle();
 
-        // Alterado aqui: Adicionado o novo código BR8888T888BR na liberação
         if (!venda && codeToSearch !== 'BR1212H271BR' && codeToSearch !== 'BR8888T888BR') {
           showError("Encomenda não encontrada em nosso sistema.");
           return;
@@ -171,12 +170,11 @@ const Index = () => {
 
       setDestInfo({ city: cidade, state: estado, cep, endereco, numero, complemento, bairro });
 
-      const { data: pixRecords } = await supabase
-        .from('pix_gateway_payments')
-        .select('status')
-        .contains('raw_payload', { trackingCode: codeToSearch });
-
-      const taxaJaPaga = pixRecords?.some(p => p.status === 'approved' || p.status === 'paid') ?? false;
+      // Verificação de taxa via Edge Function (Seguro contra RLS)
+      const { data: statusData } = await supabase.functions.invoke('check-pix-status', {
+        body: { trackingCode: codeToSearch }
+      });
+      const taxaJaPaga = statusData?.taxaPaga ?? false;
 
       const finalCity = cidade || "Seu endereço";
       const finalState = cidade ? estado : "";
@@ -260,7 +258,7 @@ const Index = () => {
 
   const handlePaymentSuccess = () => {
     setIsPixModalOpen(false);
-    // Refaz a busca para atualizar a linha do tempo!
+    // Refaz a busca para atualizar a linha do tempo com a liberação da encomenda!
     performSearch(trackingCode);
   };
 

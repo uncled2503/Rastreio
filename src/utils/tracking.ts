@@ -61,11 +61,41 @@ export function generateTimeline(code: string, destCity: string, destState: stri
   const destStr = destState ? `${destCity} / ${destState}` : destCity;
 
   const events: TrackingEvent[] = [];
-  let currentDate = new Date(start);
+  
+  // 1. EVENTO INICIAL: Código gerado (Aparece imediatamente)
+  events.push({ 
+    id: "ev0", 
+    date: start.toISOString(), 
+    status: "Código de rastreio cadastrado, aguardando postagem", 
+    location: `ACF ${franquia} - São Paulo / SP`, 
+    icon: "package", 
+    done: true // Sempre true, pois a data de criação já passou
+  });
 
-  currentDate = addDays(currentDate, 0, 0);
-  events.push({ id: "ev1", date: currentDate.toISOString(), status: "Objeto postado", location: `ACF ${franquia} - São Paulo / SP`, icon: "package", done: true });
+  // 2. CALCULAR DATA DE POSTAGEM: Próximo dia útil a partir das 07:00h
+  let postDate = new Date(start);
+  postDate.setDate(postDate.getDate() + 1); // Avança pelo menos 1 dia
+  
+  // Pula sábado (6) e domingo (0)
+  while (postDate.getDay() === 0 || postDate.getDay() === 6) { 
+    postDate.setDate(postDate.getDate() + 1);
+  }
+  // Define o horário de postagem entre 07:00 e 10:59 da manhã
+  postDate.setHours(7 + Math.floor(rnd() * 4), Math.floor(rnd() * 60), 0);
 
+  let currentDate = new Date(postDate);
+
+  // 3. EVENTO DE POSTAGEM REAL (Aparece apenas quando a data for alcançada)
+  events.push({ 
+    id: "ev1", 
+    date: currentDate.toISOString(), 
+    status: "Objeto postado", 
+    location: `ACF ${franquia} - São Paulo / SP`, 
+    icon: "package", 
+    done: currentDate <= now 
+  });
+
+  // O restante dos eventos seguem normalmente, baseados na data de postagem real
   currentDate = addDays(currentDate, 0, Math.floor(rnd() * 4) + 1);
   events.push({ id: "ev2", date: currentDate.toISOString(), status: "Objeto encaminhado", location: `ACF ${franquia} - São Paulo / SP`, destination: `CTE São Paulo - São Paulo / SP`, icon: "truck", done: currentDate <= now });
 

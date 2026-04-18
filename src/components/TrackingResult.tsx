@@ -9,9 +9,11 @@ import { TrackingEvent } from '@/utils/tracking';
 interface TrackingResultProps {
   code: string;
   data: TrackingEvent[];
+  destCity: string;
+  destState: string;
 }
 
-export const TrackingResult = ({ code, data }: TrackingResultProps) => {
+export const TrackingResult = ({ code, data, destCity, destState }: TrackingResultProps) => {
   if (!data || data.length === 0) return null;
 
   const getIcon = (iconName: string) => {
@@ -35,6 +37,15 @@ export const TrackingResult = ({ code, data }: TrackingResultProps) => {
   };
 
   const isDelivered = data[0]?.icon === 'check';
+  
+  // Como os dados vêm reversos, a origem é o último item do array.
+  // Vamos extrair apenas a cidade/estado (Ex: extrai "São Paulo / SP" de "ACF XYZ - São Paulo / SP")
+  const originFullString = data[data.length - 1]?.location || 'São Paulo / SP';
+  const originParts = originFullString.split(' - ');
+  const originStr = originParts.length > 1 ? originParts[1] : originFullString;
+
+  // Calculando o progresso para a barra animada (entre 15% e 100%)
+  const progressPct = isDelivered ? 100 : Math.min(15 + (data.length * 10), 85);
 
   return (
     <motion.div
@@ -55,6 +66,52 @@ export const TrackingResult = ({ code, data }: TrackingResultProps) => {
             <span>Última atualização: {formatDate(data[0].date)}</span>
           </div>
         </div>
+
+        {/* --- BARRA DE TRAJETO VISUAL --- */}
+        <div className="my-10 bg-zinc-50/50 rounded-2xl p-6 border border-zinc-100">
+          <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3 px-1">
+            <span>Origem</span>
+            <span>Destino</span>
+          </div>
+          
+          <div className="flex items-center gap-2 sm:gap-4 relative">
+            {/* Ícone Origem */}
+            <div className={`w-12 h-12 shrink-0 rounded-full flex items-center justify-center z-10 border-4 border-white ${isDelivered ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+              <Package size={20} />
+            </div>
+            
+            {/* Linha de Progresso */}
+            <div className="flex-1 relative h-2 bg-zinc-200 rounded-full overflow-hidden">
+               <motion.div 
+                 initial={{ width: 0 }}
+                 animate={{ width: `${progressPct}%` }}
+                 transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+                 className={`absolute left-0 top-0 h-full rounded-full ${isDelivered ? 'bg-green-500' : 'bg-blue-500'}`}
+               />
+            </div>
+            
+            {/* Ícone Destino */}
+            <div className={`w-12 h-12 shrink-0 rounded-full flex items-center justify-center z-10 border-4 border-white transition-colors duration-500 ${isDelivered ? 'bg-green-100 text-green-600' : 'bg-zinc-100 text-zinc-400'}`}>
+              <MapPin size={20} />
+            </div>
+
+            {/* Caminhãozinho animado seguindo o progresso */}
+            <motion.div 
+              initial={{ left: '0%' }}
+              animate={{ left: `calc(${progressPct}% - 14px)` }}
+              transition={{ duration: 1, ease: "easeOut", delay: 0.2 }}
+              className={`absolute top-1/2 -translate-y-1/2 z-20 bg-white p-1 rounded-full shadow-sm ${isDelivered ? 'text-green-500' : 'text-blue-500'}`}
+            >
+              <Truck size={18} className={!isDelivered ? 'animate-pulse' : ''} />
+            </motion.div>
+          </div>
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-sm font-bold text-zinc-800 mt-3 px-1 gap-2">
+            <span className="text-left">{originStr}</span>
+            <span className="text-right">{destCity} / {destState}</span>
+          </div>
+        </div>
+        {/* ------------------------------- */}
 
         <div className="relative space-y-8">
           {/* Vertical Line */}

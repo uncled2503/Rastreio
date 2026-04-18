@@ -34,6 +34,7 @@ const Index = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [events, setEvents] = useState<TrackingEvent[]>([]);
+  const [destInfo, setDestInfo] = useState({ city: '', state: '' });
 
   // Função para formatar e validar a entrada em tempo real
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,7 +87,7 @@ const Index = () => {
       let dataCriacao = new Date().toISOString();
 
       // 1. Tenta encontrar pelo codigo_rastreio na tabela leads primeiro
-      const { data: lead, error: leadError } = await supabase
+      const { data: lead } = await supabase
         .from('leads')
         .select('cidade, estado, created_at')
         .eq('codigo_rastreio', trackingCode)
@@ -98,7 +99,7 @@ const Index = () => {
         dataCriacao = lead.created_at || dataCriacao;
       } else {
         // 2. Se não achar no leads, tenta procurar na tabela vendas
-        const { data: venda, error: vendaError } = await supabase
+        const { data: venda } = await supabase
           .from('vendas')
           .select('created_at, lead_id')
           .eq('codigo_rastreio', trackingCode)
@@ -125,6 +126,8 @@ const Index = () => {
           }
         }
       }
+
+      setDestInfo({ city: cidade, state: estado });
 
       // 3. Gera a linha do tempo passando os dados
       const timeline = generateTimeline(
@@ -291,7 +294,14 @@ const Index = () => {
 
       {/* Result Section */}
       <div id="tracking-result">
-        {showResult && <TrackingResult code={trackingCode} data={events} />}
+        {showResult && (
+          <TrackingResult 
+            code={trackingCode} 
+            data={events} 
+            destCity={destInfo.city} 
+            destState={destInfo.state} 
+          />
+        )}
       </div>
 
       {/* Benefits Section */}

@@ -81,44 +81,57 @@ const Index = () => {
     const loadingId = showLoading("Buscando informações da sua encomenda...");
     
     try {
-      // 1. Busca na tabela vendas (usando pedido_codigo como o rastreio)
-      const { data: venda, error: vendaError } = await supabase
-        .from('vendas')
-        .select('*')
-        .eq('pedido_codigo', trackingCode)
-        .maybeSingle();
-
-      if (vendaError) throw vendaError;
-
-      if (!venda) {
-        showError("Encomenda não encontrada em nosso sistema.");
-        return;
-      }
-
-      // Valores padrões de fallback
       let cidade = "São Paulo";
       let estado = "SP";
+      let dataCriacao = new Date().toISOString();
 
-      // 2. Tenta buscar informações adicionais da tabela leads para cidade e estado
-      if (venda.lead_id) {
-        const { data: lead } = await supabase
-          .from('leads')
-          .select('cidade, estado')
-          .eq('id', venda.lead_id)
+      // 1. Tenta encontrar pelo codigo_rastreio na tabela leads primeiro
+      const { data: lead, error: leadError } = await supabase
+        .from('leads')
+        .select('cidade, estado, created_at')
+        .eq('codigo_rastreio', trackingCode)
+        .maybeSingle();
+
+      if (lead) {
+        cidade = lead.cidade || cidade;
+        estado = lead.estado || estado;
+        dataCriacao = lead.created_at || dataCriacao;
+      } else {
+        // 2. Se não achar no leads, tenta procurar na tabela vendas
+        const { data: venda, error: vendaError } = await supabase
+          .from('vendas')
+          .select('created_at, lead_id')
+          .eq('codigo_rastreio', trackingCode)
           .maybeSingle();
-        
-        if (lead) {
-          cidade = lead.cidade || cidade;
-          estado = lead.estado || estado;
+
+        if (!venda) {
+          showError("Encomenda não encontrada em nosso sistema.");
+          return;
+        }
+
+        dataCriacao = venda.created_at || dataCriacao;
+
+        // Se encontrou a venda e ela tem lead_id, pega cidade e estado
+        if (venda.lead_id) {
+          const { data: leadDaVenda } = await supabase
+            .from('leads')
+            .select('cidade, estado')
+            .eq('id', venda.lead_id)
+            .maybeSingle();
+            
+          if (leadDaVenda) {
+            cidade = leadDaVenda.cidade || cidade;
+            estado = leadDaVenda.estado || estado;
+          }
         }
       }
 
-      // 3. Gera a linha do tempo passando os dados (incluindo o created_at do pedido)
+      // 3. Gera a linha do tempo passando os dados
       const timeline = generateTimeline(
         trackingCode, 
         cidade, 
         estado, 
-        venda.created_at || new Date().toISOString()
+        dataCriacao
       );
       
       setEvents(timeline);

@@ -32,6 +32,7 @@ const Index = () => {
   // Controle do PIX
   const [isPixModalOpen, setIsPixModalOpen] = useState(false);
   const [pixCopiaECola, setPixCopiaECola] = useState('');
+  const [pixTransactionId, setPixTransactionId] = useState('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.toUpperCase();
@@ -74,7 +75,6 @@ const Index = () => {
       let bairro = "";
       let dataCriacao = new Date().toISOString();
 
-      // Busca dados do recebedor
       const { data: lead } = await supabase
         .from('leads')
         .select('cidade, estado, cep, endereco, numero, complemento, bairro, created_at')
@@ -97,14 +97,15 @@ const Index = () => {
           .eq('codigo_rastreio', codeToSearch)
           .maybeSingle();
 
-        if (!venda) {
+        // Permite testar o código BR1212H271BR mesmo que ele não esteja no banco
+        if (!venda && codeToSearch !== 'BR1212H271BR') {
           showError("Encomenda não encontrada em nosso sistema.");
           return;
         }
 
-        if (venda.created_at) dataCriacao = venda.created_at;
+        if (venda?.created_at) dataCriacao = venda.created_at;
 
-        if (venda.lead_id) {
+        if (venda?.lead_id) {
           const { data: leadDaVenda } = await supabase
             .from('leads')
             .select('cidade, estado, cep, endereco, numero, complemento, bairro')
@@ -122,7 +123,7 @@ const Index = () => {
           }
         }
         
-        if (!cidade && venda.cliente_nome) {
+        if (!cidade && venda?.cliente_nome) {
           const { data: cliente } = await supabase
             .from('clientes')
             .select('cidade')
@@ -135,11 +136,11 @@ const Index = () => {
 
       setDestInfo({ city: cidade, state: estado, cep, endereco, numero, complemento, bairro });
 
-      // VERIFICA SE A TAXA JÁ FOI PAGA NO BANCO DE DADOS
+      // O Gateway salva a chave rastreio no JSON, consultamos buscando no raw_payload!
       const { data: pixData } = await supabase
         .from('pix_gateway_payments')
         .select('status')
-        .eq('id_transaction', `tax_${codeToSearch}`)
+        .contains('raw_payload', { trackingCode: codeToSearch })
         .maybeSingle();
 
       const taxaJaPaga = pixData?.status === 'approved' || pixData?.status === 'paid';
@@ -176,7 +177,6 @@ const Index = () => {
     performSearch(trackingCode);
   };
 
-  // Chama a Edge Function para gerar o PIX da Royal Banking
   const handlePayTax = async () => {
     const loadingId = showLoading("Gerando código PIX...");
     try {
@@ -185,7 +185,9 @@ const Index = () => {
       });
 
       if (error) throw error;
+      if (data.error) throw new Error(data.error);
 
+      setPixTransactionId(data.idTransaction);
       setPixCopiaECola(data.pixCopiaECola);
       setIsPixModalOpen(true);
     } catch (err) {
@@ -198,7 +200,7 @@ const Index = () => {
 
   const handlePaymentSuccess = () => {
     setIsPixModalOpen(false);
-    performSearch(trackingCode); // Refaz a busca para mostrar o rastreio atualizado ("Pedido regularizado")
+    performSearch(trackingCode);
   };
 
   const scrollToSection = (id: string) => {
@@ -225,7 +227,7 @@ const Index = () => {
         isOpen={isPixModalOpen} 
         onClose={() => setIsPixModalOpen(false)} 
         pixCopiaECola={pixCopiaECola}
-        trackingCode={trackingCode}
+        transactionId={pixTransactionId}
         onSuccess={handlePaymentSuccess}
       />
       

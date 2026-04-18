@@ -12,23 +12,22 @@ interface PixModalProps {
   isOpen: boolean;
   onClose: () => void;
   pixCopiaECola: string;
-  trackingCode: string;
+  transactionId: string;
   onSuccess: () => void;
 }
 
-export const PixModal = ({ isOpen, onClose, pixCopiaECola, trackingCode, onSuccess }: PixModalProps) => {
+export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, onSuccess }: PixModalProps) => {
   const [copied, setCopied] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
 
-  // Polling para verificar se o pagamento foi aprovado (webhook da Royal Banking vai atualizar o banco)
+  // Polling para verificar se o pagamento foi aprovado (webhook atualiza no banco)
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !transactionId) return;
 
     const checkPayment = async () => {
       const { data } = await supabase
         .from('pix_gateway_payments')
         .select('status')
-        .eq('id_transaction', `tax_${trackingCode}`)
+        .eq('id_transaction', transactionId)
         .maybeSingle();
 
       if (data && (data.status === 'approved' || data.status === 'paid')) {
@@ -39,7 +38,7 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, trackingCode, onSucce
 
     const interval = setInterval(checkPayment, 3000); // Checa a cada 3 segundos
     return () => clearInterval(interval);
-  }, [isOpen, trackingCode, onSuccess]);
+  }, [isOpen, transactionId, onSuccess]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(pixCopiaECola);

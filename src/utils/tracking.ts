@@ -57,6 +57,8 @@ export function generateTimeline(code: string, destCity: string, destState: stri
     return d;
   };
 
+  const destStr = destState ? `${destCity} / ${destState}` : destCity;
+
   const events: TrackingEvent[] = [];
   let currentDate = new Date(start);
 
@@ -76,18 +78,18 @@ export function generateTimeline(code: string, destCity: string, destState: stri
   events.push({ id: "ev5", date: currentDate.toISOString(), status: "Objeto chegou na unidade", location: `CTE ${city1}`, icon: "truck", done: currentDate <= now });
 
   currentDate = addDays(currentDate, 0, Math.floor(rnd() * 6) + 2);
-  events.push({ id: "ev6", date: currentDate.toISOString(), status: "Objeto encaminhado", location: `CTE ${city1}`, destination: `CDD ${destCity} / ${destState}`, icon: "truck", done: currentDate <= now });
+  events.push({ id: "ev6", date: currentDate.toISOString(), status: "Objeto encaminhado", location: `CTE ${city1}`, destination: `CDD ${destStr}`, icon: "truck", done: currentDate <= now });
 
   currentDate = addDays(currentDate, 1, Math.floor(rnd() * 12));
-  events.push({ id: "ev7", date: currentDate.toISOString(), status: "Objeto chegou na unidade", location: `CDD ${destCity} / ${destState}`, icon: "truck", done: currentDate <= now });
+  events.push({ id: "ev7", date: currentDate.toISOString(), status: "Objeto chegou na unidade", location: `CDD ${destStr}`, icon: "truck", done: currentDate <= now });
 
   currentDate = addDays(currentDate, 0, 0);
   currentDate.setHours(Math.floor(rnd() * 4) + 8, Math.floor(rnd() * 60));
-  events.push({ id: "ev8", date: currentDate.toISOString(), status: "Objeto saiu para entrega ao destinatário", location: `CDD ${bairro} - ${destCity} / ${destState}`, icon: "truck", done: currentDate <= now });
+  events.push({ id: "ev8", date: currentDate.toISOString(), status: "Objeto saiu para entrega ao destinatário", location: `CDD ${bairro} - ${destStr}`, icon: "truck", done: currentDate <= now });
 
   currentDate = addDays(currentDate, 0, 0);
   currentDate.setHours(currentDate.getHours() + Math.floor(rnd() * 6) + 2);
-  events.push({ id: "ev9", date: currentDate.toISOString(), status: "Objeto entregue ao destinatário", location: `${destCity} / ${destState}`, icon: "check", done: currentDate <= now });
+  events.push({ id: "ev9", date: currentDate.toISOString(), status: "Objeto entregue ao destinatário", location: `${destStr}`, icon: "check", done: currentDate <= now });
 
   return events.filter(e => e.done).reverse();
 }

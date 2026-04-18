@@ -55,6 +55,9 @@ export const TrackingResult = ({ code, data, destCity, destState }: TrackingResu
   const originParts = originFullString.split(' - ');
   const originStr = originParts.length > 1 ? originParts[1] : originFullString;
 
+  // Calculando strings reais que vão aparecer na tela de Destino (para remover barras vazias)
+  const destString = destCity ? `${destCity}${destState ? ` / ${destState}` : ''}` : 'Endereço do Destinatário';
+
   // Gerando os CEPs
   const originCEP = generateCEP(originStr + code);
   const destCEP = generateCEP(destCity + destState + code);
@@ -127,7 +130,7 @@ export const TrackingResult = ({ code, data, destCity, destState }: TrackingResu
               <p className="text-xs text-zinc-500 font-semibold mt-0.5">CEP: {originCEP}</p>
             </div>
             <div className="text-right">
-              <p className="text-sm font-bold text-zinc-800">{destCity} / {destState}</p>
+              <p className="text-sm font-bold text-zinc-800">{destString}</p>
               <p className="text-xs text-zinc-500 font-semibold mt-0.5">CEP: {destCEP}</p>
             </div>
           </div>

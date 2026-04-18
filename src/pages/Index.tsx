@@ -42,20 +42,16 @@ const Index = () => {
     const index = value.length - 1;
     const char = value[index];
 
-    // Se estiver apagando, permite
     if (value.length < trackingCode.length) {
       setTrackingCode(value);
       return;
     }
 
-    // Limita o tamanho máximo do padrão (BR + 4 num + 1 letra + 3 num + BR = 12 caracteres)
     if (value.length > 12) return;
 
-    // Regras por posição
     const isDigit = (c: string) => /\d/.test(c);
     const isAlpha = (c: string) => /[A-Z]/.test(c);
 
-    // Validação rigorosa por índice
     let isValid = true;
     if (index === 0 && char !== 'B') isValid = false;
     else if (index === 1 && char !== 'R') isValid = false;
@@ -82,8 +78,8 @@ const Index = () => {
     const loadingId = showLoading("Buscando informações da sua encomenda...");
     
     try {
-      let cidade = "São Paulo";
-      let estado = "SP";
+      let cidade = "";
+      let estado = "";
       let dataCriacao = new Date().toISOString();
 
       // 1. Tenta encontrar pelo codigo_rastreio na tabela leads primeiro
@@ -94,14 +90,14 @@ const Index = () => {
         .maybeSingle();
 
       if (lead) {
-        cidade = lead.cidade || cidade;
-        estado = lead.estado || estado;
-        dataCriacao = lead.created_at || dataCriacao;
+        if (lead.cidade) cidade = lead.cidade;
+        if (lead.estado) estado = lead.estado;
+        if (lead.created_at) dataCriacao = lead.created_at;
       } else {
         // 2. Se não achar no leads, tenta procurar na tabela vendas
         const { data: venda } = await supabase
           .from('vendas')
-          .select('created_at, lead_id')
+          .select('created_at, lead_id, cliente_nome')
           .eq('codigo_rastreio', trackingCode)
           .maybeSingle();
 
@@ -110,7 +106,7 @@ const Index = () => {
           return;
         }
 
-        dataCriacao = venda.created_at || dataCriacao;
+        if (venda.created_at) dataCriacao = venda.created_at;
 
         // Se encontrou a venda e ela tem lead_id, pega cidade e estado
         if (venda.lead_id) {
@@ -121,19 +117,35 @@ const Index = () => {
             .maybeSingle();
             
           if (leadDaVenda) {
-            cidade = leadDaVenda.cidade || cidade;
-            estado = leadDaVenda.estado || estado;
+            if (leadDaVenda.cidade) cidade = leadDaVenda.cidade;
+            if (leadDaVenda.estado) estado = leadDaVenda.estado;
+          }
+        }
+        
+        // 3. Se ainda não achou a cidade (ex: venda importada sem lead_id), busca em clientes
+        if (!cidade && venda.cliente_nome) {
+          const { data: cliente } = await supabase
+            .from('clientes')
+            .select('cidade')
+            .eq('nome', venda.cliente_nome)
+            .maybeSingle();
+            
+          if (cliente && cliente.cidade) {
+            cidade = cliente.cidade;
           }
         }
       }
 
       setDestInfo({ city: cidade, state: estado });
 
-      // 3. Gera a linha do tempo passando os dados
+      // Fallback estético APENAS para gerar a linha do tempo caso o banco de dados não tenha nada
+      const finalCity = cidade || "Curitiba";
+      const finalState = estado || "PR";
+
       const timeline = generateTimeline(
         trackingCode, 
-        cidade, 
-        estado, 
+        finalCity, 
+        finalState, 
         dataCriacao
       );
       
@@ -141,7 +153,6 @@ const Index = () => {
       setShowResult(true);
       showSuccess("Encomenda localizada com sucesso!");
 
-      // Scroll suave para o resultado
       setTimeout(() => {
         const resultElement = document.getElementById('tracking-result');
         if (resultElement) {

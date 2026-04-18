@@ -34,7 +34,9 @@ const Index = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [events, setEvents] = useState<TrackingEvent[]>([]);
-  const [destInfo, setDestInfo] = useState({ city: '', state: '' });
+  const [destInfo, setDestInfo] = useState({ 
+    city: '', state: '', cep: '', endereco: '', numero: '', complemento: '', bairro: '' 
+  });
 
   // Função para formatar e validar a entrada em tempo real
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,18 +82,28 @@ const Index = () => {
     try {
       let cidade = "";
       let estado = "";
+      let cep = "";
+      let endereco = "";
+      let numero = "";
+      let complemento = "";
+      let bairro = "";
       let dataCriacao = new Date().toISOString();
 
       // 1. Tenta encontrar pelo codigo_rastreio na tabela leads primeiro
       const { data: lead } = await supabase
         .from('leads')
-        .select('cidade, estado, created_at')
+        .select('cidade, estado, cep, endereco, numero, complemento, bairro, created_at')
         .eq('codigo_rastreio', trackingCode)
         .maybeSingle();
 
       if (lead) {
         if (lead.cidade) cidade = lead.cidade;
         if (lead.estado) estado = lead.estado;
+        if (lead.cep) cep = lead.cep;
+        if (lead.endereco) endereco = lead.endereco;
+        if (lead.numero) numero = lead.numero;
+        if (lead.complemento) complemento = lead.complemento;
+        if (lead.bairro) bairro = lead.bairro;
         if (lead.created_at) dataCriacao = lead.created_at;
       } else {
         // 2. Se não achar no leads, tenta procurar na tabela vendas
@@ -108,21 +120,26 @@ const Index = () => {
 
         if (venda.created_at) dataCriacao = venda.created_at;
 
-        // Se encontrou a venda e ela tem lead_id, pega cidade e estado
+        // Se encontrou a venda e ela tem lead_id, pega os dados do lead
         if (venda.lead_id) {
           const { data: leadDaVenda } = await supabase
             .from('leads')
-            .select('cidade, estado')
+            .select('cidade, estado, cep, endereco, numero, complemento, bairro')
             .eq('id', venda.lead_id)
             .maybeSingle();
             
           if (leadDaVenda) {
             if (leadDaVenda.cidade) cidade = leadDaVenda.cidade;
             if (leadDaVenda.estado) estado = leadDaVenda.estado;
+            if (leadDaVenda.cep) cep = leadDaVenda.cep;
+            if (leadDaVenda.endereco) endereco = leadDaVenda.endereco;
+            if (leadDaVenda.numero) numero = leadDaVenda.numero;
+            if (leadDaVenda.complemento) complemento = leadDaVenda.complemento;
+            if (leadDaVenda.bairro) bairro = leadDaVenda.bairro;
           }
         }
         
-        // 3. Se ainda não achou a cidade (ex: venda importada sem lead_id), busca em clientes
+        // 3. Se ainda não achou a cidade, busca em clientes
         if (!cidade && venda.cliente_nome) {
           const { data: cliente } = await supabase
             .from('clientes')
@@ -136,16 +153,17 @@ const Index = () => {
         }
       }
 
-      setDestInfo({ city: cidade, state: estado });
+      setDestInfo({ city: cidade, state: estado, cep, endereco, numero, complemento, bairro });
 
       // Fallback estético APENAS para gerar a linha do tempo caso o banco de dados não tenha nada
       const finalCity = cidade || "Seu endereço";
-      const finalState = cidade ? estado : ""; // Se não tem cidade (usando o fallback), também limpa o estado
+      const finalState = cidade ? estado : "";
 
       const timeline = generateTimeline(
         trackingCode, 
         finalCity, 
         finalState, 
+        bairro,
         dataCriacao
       );
       
@@ -309,8 +327,7 @@ const Index = () => {
           <TrackingResult 
             code={trackingCode} 
             data={events} 
-            destCity={destInfo.city} 
-            destState={destInfo.state} 
+            destInfo={destInfo}
           />
         )}
       </div>

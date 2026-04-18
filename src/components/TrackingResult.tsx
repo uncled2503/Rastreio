@@ -9,8 +9,15 @@ import { TrackingEvent } from '@/utils/tracking';
 interface TrackingResultProps {
   code: string;
   data: TrackingEvent[];
-  destCity: string;
-  destState: string;
+  destInfo: {
+    city: string;
+    state: string;
+    cep: string;
+    endereco: string;
+    numero: string;
+    complemento: string;
+    bairro: string;
+  };
 }
 
 // Função para gerar um CEP determinístico baseado em uma string (para manter o mesmo CEP no mesmo rastreio)
@@ -25,8 +32,10 @@ const generateCEP = (seedStr: string) => {
   return `${num1}-${num2}`;
 };
 
-export const TrackingResult = ({ code, data, destCity, destState }: TrackingResultProps) => {
+export const TrackingResult = ({ code, data, destInfo }: TrackingResultProps) => {
   if (!data || data.length === 0) return null;
+
+  const { city, state, cep, endereco, numero, complemento, bairro } = destInfo;
 
   const getIcon = (iconName: string) => {
     switch (iconName) {
@@ -55,13 +64,12 @@ export const TrackingResult = ({ code, data, destCity, destState }: TrackingResu
   const originParts = originFullString.split(' - ');
   const originStr = originParts.length > 1 ? originParts[1] : originFullString;
 
-  // Calculando strings reais que vão aparecer na tela de Destino (para remover barras vazias)
-  const destString = destCity ? `${destCity}${destState ? ` / ${destState}` : ''}` : 'Seu endereço';
+  // Calculando strings reais que vão aparecer na tela de Destino
+  const destString = city ? `${city}${state ? ` / ${state}` : ''}` : 'Seu endereço';
 
-  // Gerando os CEPs
+  // Gerando os CEPs (usa o CEP real do banco se existir, caso contrário gera um)
   const originCEP = generateCEP(originStr + code);
-  // Se for "Seu endereço" (sem cidade no banco), usa a própria string de fallback para gerar o CEP.
-  const destCEP = generateCEP(destCity + destState + code);
+  const destCEP = cep || generateCEP(city + state + code);
 
   // Calculando o progresso para a barra animada (entre 15% e 100%)
   const progressPct = isDelivered ? 100 : Math.min(15 + (data.length * 10), 85);
@@ -125,13 +133,22 @@ export const TrackingResult = ({ code, data, destCity, destState }: TrackingResu
             </motion.div>
           </div>
           
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-4 px-1 gap-4">
-            <div className="text-left">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between mt-4 px-1 gap-4">
+            <div className="text-left sm:w-1/2">
               <p className="text-sm font-bold text-zinc-800">{originStr}</p>
               <p className="text-xs text-zinc-500 font-semibold mt-0.5">CEP: {originCEP}</p>
             </div>
-            <div className="text-right">
+            <div className="text-right sm:w-1/2">
               <p className="text-sm font-bold text-zinc-800">{destString}</p>
+              
+              {endereco && (
+                <p className="text-xs text-zinc-500 mt-1">
+                  {endereco}{numero ? `, ${numero}` : ''}
+                  {complemento ? ` - ${complemento}` : ''}
+                </p>
+              )}
+              {bairro && <p className="text-xs text-zinc-500 mt-0.5">{bairro}</p>}
+
               <p className="text-xs text-zinc-500 font-semibold mt-0.5">CEP: {destCEP}</p>
             </div>
           </div>

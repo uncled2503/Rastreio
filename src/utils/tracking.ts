@@ -30,7 +30,7 @@ const BAIRROS = [
   "Bela Vista", "Boa Vista", "Copacabana", "Ipanema", "Barra da Tijuca", "Savassi", "Funcionários", "Pampulha"
 ];
 
-export function generateTimeline(code: string, destCity: string, destState: string, startDateIso: string): TrackingEvent[] {
+export function generateTimeline(code: string, destCity: string, destState: string, destBairro: string, startDateIso: string): TrackingEvent[] {
   let seedValue = 0;
   for (let i = 0; i < code.length; i++) {
     seedValue = (Math.imul(31, seedValue) + code.charCodeAt(i)) | 0;
@@ -48,7 +48,8 @@ export function generateTimeline(code: string, destCity: string, destState: stri
 
   const city1 = CIDADES[Math.floor(rnd() * CIDADES.length)];
   const franquia = FRANQUIAS[Math.floor(rnd() * FRANQUIAS.length)];
-  const bairro = BAIRROS[Math.floor(rnd() * BAIRROS.length)];
+  // Usa o bairro real se disponível, caso contrário gera um aleatório determinístico
+  const bairro = destBairro || BAIRROS[Math.floor(rnd() * BAIRROS.length)];
 
   const addDays = (date: Date, days: number, hours: number) => {
     const d = new Date(date);

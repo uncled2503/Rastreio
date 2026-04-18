@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
-  Search, Truck, Bell, History, ShieldCheck, HelpCircle, ArrowRight, PackageCheck, Zap, Check,
+  Search, Truck, Bell, History, ShieldCheck, HelpCircle, ArrowRight, PackageCheck, Zap, Check, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AntiFraudModal } from '@/components/AntiFraudModal';
@@ -33,6 +33,28 @@ const Index = () => {
   const [isPixModalOpen, setIsPixModalOpen] = useState(false);
   const [pixCopiaECola, setPixCopiaECola] = useState('');
   const [pixTransactionId, setPixTransactionId] = useState('');
+
+  // Controle de FAQ
+  const [selectedFaq, setSelectedFaq] = useState<{title: string, content: string} | null>(null);
+
+  const faqs = [
+    {
+      title: "Minha encomenda não chegou",
+      content: "Os prazos de entrega variam de acordo com a transportadora e a modalidade de envio escolhida. Se o prazo estimado já expirou, recomendamos aguardar mais 2 a 3 dias úteis, pois imprevistos na rota (como clima ou trânsito) podem ocorrer. Caso o status continue sem atualização por muito tempo, entre em contato diretamente com a loja onde a compra foi realizada para acionar o seguro ou solicitar um reenvio."
+    },
+    {
+      title: "Paguei taxa, e agora?",
+      content: "Após realizar o pagamento do Despacho Postal via PIX, o nosso sistema leva alguns instantes para confirmar a transação com o gateway e atualizar o status no banco de dados. Assim que confirmado, a transportadora será notificada de forma automática e a sua encomenda será liberada da fiscalização para seguir o fluxo normal de entrega até o seu endereço."
+    },
+    {
+      title: "Código não funciona",
+      content: "É muito comum que os códigos de rastreio levem até 72 horas úteis para começarem a constar no sistema das transportadoras após a loja confirmar o envio. Isso acontece porque o pacote precisa ser fisicamente despachado e 'bipado' na primeira unidade. Se você acabou de receber o código, aguarde um pouco e tente novamente mais tarde. Verifique também se digitou sem espaços extras."
+    },
+    {
+      title: "Status não atualiza",
+      content: "É perfeitamente normal que o status da encomenda demore alguns dias para ser atualizado, especialmente em trechos muito longos entre estados ou em remessas internacionais aguardando fiscalização aduaneira. O rastreio só recebe uma nova atualização quando o pacote chega fisicamente e é escaneado em uma nova unidade de tratamento da transportadora."
+    }
+  ];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.toUpperCase();
@@ -230,6 +252,45 @@ const Index = () => {
         transactionId={pixTransactionId}
         onSuccess={handlePaymentSuccess}
       />
+
+      {/* Modal de FAQ */}
+      <AnimatePresence>
+        {selectedFaq && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedFaq(null)}>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl relative"
+            >
+              <div className="p-6 md:p-8">
+                <button
+                  onClick={() => setSelectedFaq(null)}
+                  className="absolute top-4 right-4 p-2 hover:bg-zinc-100 rounded-full transition-colors"
+                >
+                  <X size={20} className="text-zinc-500" />
+                </button>
+                <div className="w-16 h-16 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center mb-6">
+                  <HelpCircle size={32} />
+                </div>
+                <h3 className="text-2xl font-black text-zinc-900 mb-4">
+                  {selectedFaq.title}
+                </h3>
+                <p className="text-zinc-600 leading-relaxed">
+                  {selectedFaq.content}
+                </p>
+                <Button
+                  onClick={() => setSelectedFaq(null)}
+                  className="w-full mt-8 bg-zinc-900 hover:bg-zinc-800 text-white font-bold h-14 rounded-xl text-lg transition-all active:scale-[0.98]"
+                >
+                  Entendi
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
       
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-zinc-100">
         <div className="container mx-auto px-4 h-20 flex items-center justify-between">
@@ -485,15 +546,14 @@ const Index = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              "Minha encomenda não chegou",
-              "Paguei taxa, e agora?",
-              "Código não funciona",
-              "Status não atualiza"
-            ].map((q, idx) => (
-              <div key={idx} className="p-8 rounded-3xl bg-zinc-800/50 border border-zinc-700 hover:bg-zinc-800 transition-all cursor-pointer group">
+            {faqs.map((faq, idx) => (
+              <div 
+                key={idx} 
+                onClick={() => setSelectedFaq(faq)}
+                className="p-8 rounded-3xl bg-zinc-800/50 border border-zinc-700 hover:bg-zinc-800 transition-all cursor-pointer group"
+              >
                 <HelpCircle className="text-green-500 mb-4" size={24} />
-                <h4 className="font-bold text-lg mb-4 group-hover:text-green-400 transition-colors">{q}</h4>
+                <h4 className="font-bold text-lg mb-4 group-hover:text-green-400 transition-colors">{faq.title}</h4>
                 <div className="flex items-center gap-2 text-sm text-zinc-400 font-bold group-hover:translate-x-1 transition-transform">
                   Ver artigo <ArrowRight size={14} />
                 </div>

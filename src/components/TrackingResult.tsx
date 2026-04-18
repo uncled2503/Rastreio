@@ -13,6 +13,18 @@ interface TrackingResultProps {
   destState: string;
 }
 
+// Função para gerar um CEP determinístico baseado em uma string (para manter o mesmo CEP no mesmo rastreio)
+const generateCEP = (seedStr: string) => {
+  let hash = 0;
+  for (let i = 0; i < seedStr.length; i++) {
+    hash = ((hash << 5) - hash) + seedStr.charCodeAt(i);
+    hash |= 0;
+  }
+  const num1 = Math.abs(hash % 90000) + 10000; // 5 dígitos (10000-99999)
+  const num2 = Math.abs((hash * 13) % 900) + 100; // 3 dígitos (100-999)
+  return `${num1}-${num2}`;
+};
+
 export const TrackingResult = ({ code, data, destCity, destState }: TrackingResultProps) => {
   if (!data || data.length === 0) return null;
 
@@ -39,10 +51,13 @@ export const TrackingResult = ({ code, data, destCity, destState }: TrackingResu
   const isDelivered = data[0]?.icon === 'check';
   
   // Como os dados vêm reversos, a origem é o último item do array.
-  // Vamos extrair apenas a cidade/estado (Ex: extrai "São Paulo / SP" de "ACF XYZ - São Paulo / SP")
   const originFullString = data[data.length - 1]?.location || 'São Paulo / SP';
   const originParts = originFullString.split(' - ');
   const originStr = originParts.length > 1 ? originParts[1] : originFullString;
+
+  // Gerando os CEPs
+  const originCEP = generateCEP(originStr + code);
+  const destCEP = generateCEP(destCity + destState + code);
 
   // Calculando o progresso para a barra animada (entre 15% e 100%)
   const progressPct = isDelivered ? 100 : Math.min(15 + (data.length * 10), 85);
@@ -106,9 +121,15 @@ export const TrackingResult = ({ code, data, destCity, destState }: TrackingResu
             </motion.div>
           </div>
           
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-sm font-bold text-zinc-800 mt-3 px-1 gap-2">
-            <span className="text-left">{originStr}</span>
-            <span className="text-right">{destCity} / {destState}</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-4 px-1 gap-4">
+            <div className="text-left">
+              <p className="text-sm font-bold text-zinc-800">{originStr}</p>
+              <p className="text-xs text-zinc-500 font-semibold mt-0.5">CEP: {originCEP}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-bold text-zinc-800">{destCity} / {destState}</p>
+              <p className="text-xs text-zinc-500 font-semibold mt-0.5">CEP: {destCEP}</p>
+            </div>
           </div>
         </div>
         {/* ------------------------------- */}

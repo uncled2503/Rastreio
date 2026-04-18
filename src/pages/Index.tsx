@@ -444,9 +444,10 @@ const Index = () => {
               },
               {
                 name: "Empresarial",
-                price: "Consulte",
+                price: "R$ 347,90",
+                period: "/vitalício",
                 features: ["API de Rastreio", "Dashboard Multi-usuário", "Suporte 24/7", "White Label"],
-                button: "Falar com Vendas",
+                button: "Comprar Agora",
                 highlight: false
               }
             ].map((plan, idx) => (
@@ -457,7 +458,7 @@ const Index = () => {
                 <h4 className="text-xl font-bold mb-2">{plan.name}</h4>
                 <div className="flex items-end justify-center gap-1 mb-8">
                   <span className="text-4xl font-black">{plan.price}</span>
-                  <span className="text-zinc-400 text-sm font-bold mb-1">{plan.period}</span>
+                  {plan.period && <span className="text-zinc-400 text-sm font-bold mb-1">{plan.period}</span>}
                 </div>
                 <ul className="space-y-4 mb-10 text-left">
                   {plan.features.map((feature, fidx) => (

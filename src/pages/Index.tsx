@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { AntiFraudModal } from '@/components/AntiFraudModal';
 import { TrackingResult } from '@/components/TrackingResult';
 import { PixModal } from '@/components/PixModal';
+import { PlanPixModal } from '@/components/PlanPixModal';
 import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
 import Logo from '@/components/Logo';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,10 +30,19 @@ const Index = () => {
     city: '', state: '', cep: '', endereco: '', numero: '', complemento: '', bairro: '' 
   });
   
-  // Controle do PIX
+  // Controle do PIX de Taxa
   const [isPixModalOpen, setIsPixModalOpen] = useState(false);
   const [pixCopiaECola, setPixCopiaECola] = useState('');
   const [pixTransactionId, setPixTransactionId] = useState('');
+
+  // Controle do PIX de Planos
+  const [isPlanPixModalOpen, setIsPlanPixModalOpen] = useState(false);
+  const [planPixData, setPlanPixData] = useState({
+    pixCopiaECola: '',
+    transactionId: '',
+    planName: '',
+    amount: 0
+  });
 
   // Controle de FAQ
   const [selectedFaq, setSelectedFaq] = useState<{title: string, content: string} | null>(null);
@@ -119,7 +129,6 @@ const Index = () => {
           .eq('codigo_rastreio', codeToSearch)
           .maybeSingle();
 
-        // Permite testar o código BR1212H271BR mesmo que ele não esteja no banco
         if (!venda && codeToSearch !== 'BR1212H271BR') {
           showError("Encomenda não encontrada em nosso sistema.");
           return;
@@ -158,7 +167,6 @@ const Index = () => {
 
       setDestInfo({ city: cidade, state: estado, cep, endereco, numero, complemento, bairro });
 
-      // O Gateway salva a chave rastreio no JSON, consultamos buscando no raw_payload!
       const { data: pixData } = await supabase
         .from('pix_gateway_payments')
         .select('status')
@@ -220,9 +228,41 @@ const Index = () => {
     }
   };
 
+  const handleBuyPlan = async (planName: string, amount: number) => {
+    if (amount === 0) return; // Plano gratuito
+    
+    const loadingId = showLoading(`Gerando PIX para o plano ${planName}...`);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-plan-pix', {
+        body: { planName, amount }
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      setPlanPixData({
+        pixCopiaECola: data.pixCopiaECola,
+        transactionId: data.idTransaction,
+        planName,
+        amount
+      });
+      setIsPlanPixModalOpen(true);
+    } catch (err) {
+      console.error(err);
+      showError("Não foi possível gerar a cobrança do plano. Tente novamente.");
+    } finally {
+      dismissToast(loadingId);
+    }
+  };
+
   const handlePaymentSuccess = () => {
     setIsPixModalOpen(false);
     performSearch(trackingCode);
+  };
+
+  const handlePlanPaymentSuccess = () => {
+    setIsPlanPixModalOpen(false);
+    // Aqui você pode redirecionar para um dashboard ou exibir algo diferente
   };
 
   const scrollToSection = (id: string) => {
@@ -241,6 +281,53 @@ const Index = () => {
     { name: 'Total Express', logo: totalExpressLogo, scale: "scale-100" },
   ];
 
+  const plans = [
+    {
+      name: "Gratuito",
+      price: "R$ 0",
+      amount: 0,
+      features: ["Até 5 rastreios ativos", "Histórico de 30 dias", "Notificações básicas"],
+      button: "Começar Agora",
+      highlight: false
+    },
+    {
+      name: "Pro",
+      price: "R$ 19,90",
+      period: "/mês",
+      amount: 19.90,
+      features: ["Rastreios ilimitados", "Histórico Vitalício", "Alertas via WhatsApp", "Prioridade de busca"],
+      button: "Assinar Pro",
+      highlight: true
+    },
+    {
+      name: "Trimestral",
+      price: "R$ 49,90",
+      period: "/trim",
+      amount: 49.90,
+      features: ["Tudo do plano Pro", "Economia de R$ 9,80", "Suporte prioritário", "Alertas VIP"],
+      button: "Assinar Trimestral",
+      highlight: false
+    },
+    {
+      name: "Semestral",
+      price: "R$ 89,90",
+      period: "/sem",
+      amount: 89.90,
+      features: ["Tudo do plano Pro", "Economia de R$ 29,50", "Suporte VIP 24/7", "Acesso antecipado"],
+      button: "Assinar Semestral",
+      highlight: false
+    },
+    {
+      name: "Empresarial",
+      price: "R$ 347,90",
+      period: "/vitalício",
+      amount: 347.90,
+      features: ["API de Rastreio", "Dashboard Multi-usuário", "Suporte 24/7", "White Label"],
+      button: "Comprar Agora",
+      highlight: false
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-zinc-900 overflow-x-hidden font-sans scroll-smooth">
       <AntiFraudModal />
@@ -253,7 +340,16 @@ const Index = () => {
         onSuccess={handlePaymentSuccess}
       />
 
-      {/* Modal de FAQ */}
+      <PlanPixModal 
+        isOpen={isPlanPixModalOpen} 
+        onClose={() => setIsPlanPixModalOpen(false)} 
+        pixCopiaECola={planPixData.pixCopiaECola}
+        transactionId={planPixData.transactionId}
+        planName={planPixData.planName}
+        amount={planPixData.amount}
+        onSuccess={handlePlanPaymentSuccess}
+      />
+
       <AnimatePresence>
         {selectedFaq && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedFaq(null)}>
@@ -486,33 +582,9 @@ const Index = () => {
           <h2 className="text-3xl md:text-5xl font-black mb-4">Planos para todos</h2>
           <p className="text-zinc-500 mb-16 max-w-2xl mx-auto">Escolha o plano que melhor atende suas necessidades de rastreamento.</p>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                name: "Gratuito",
-                price: "R$ 0",
-                features: ["Até 5 rastreios ativos", "Histórico de 30 dias", "Notificações básicas"],
-                button: "Começar Agora",
-                highlight: false
-              },
-              {
-                name: "Pro",
-                price: "R$ 19,90",
-                period: "/mês",
-                features: ["Rastreios ilimitados", "Histórico Vitalício", "Alertas via WhatsApp", "Prioridade de busca"],
-                button: "Assinar Pro",
-                highlight: true
-              },
-              {
-                name: "Empresarial",
-                price: "R$ 347,90",
-                period: "/vitalício",
-                features: ["API de Rastreio", "Dashboard Multi-usuário", "Suporte 24/7", "White Label"],
-                button: "Comprar Agora",
-                highlight: false
-              }
-            ].map((plan, idx) => (
-              <div key={idx} className={`p-10 rounded-[2.5rem] border-2 transition-all ${plan.highlight ? 'border-green-500 bg-white shadow-2xl shadow-green-100 relative' : 'border-zinc-100 bg-zinc-50/50'}`}>
+          <div className="flex flex-wrap justify-center gap-8">
+            {plans.map((plan, idx) => (
+              <div key={idx} className={`w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.5rem)] p-10 rounded-[2.5rem] border-2 transition-all ${plan.highlight ? 'border-green-500 bg-white shadow-2xl shadow-green-100 relative' : 'border-zinc-100 bg-zinc-50/50'}`}>
                 {plan.highlight && (
                   <span className="absolute -top-4 left-1/2 -translate-x-1/2 bg-green-500 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest">Mais Popular</span>
                 )}
@@ -529,7 +601,10 @@ const Index = () => {
                     </li>
                   ))}
                 </ul>
-                <Button className={`w-full h-14 rounded-2xl font-black text-lg transition-all ${plan.highlight ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-zinc-200 hover:bg-zinc-300 text-zinc-700'}`}>
+                <Button 
+                  onClick={() => handleBuyPlan(plan.name, plan.amount)}
+                  className={`w-full h-14 rounded-2xl font-black text-lg transition-all ${plan.highlight ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-zinc-200 hover:bg-zinc-300 text-zinc-700'}`}
+                >
                   {plan.button}
                 </Button>
               </div>

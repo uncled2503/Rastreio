@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { ArrowLeft, Mail, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import Logo from '@/components/Logo';
@@ -25,19 +25,12 @@ const Support = () => {
           <h1 className="text-3xl md:text-5xl font-black mb-8">Central de Ajuda</h1>
           <p className="text-zinc-500 text-lg mb-12">Estamos aqui para ajudar com qualquer dúvida sobre seus rastreios.</p>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="max-w-lg">
             <div className="p-8 rounded-2xl bg-zinc-50 border border-zinc-100">
               <Mail className="text-green-600 mb-4" size={32} />
               <h3 className="text-xl font-bold mb-2">E-mail</h3>
               <p className="text-zinc-500 mb-6">Resposta em até 24 horas úteis.</p>
               <p className="font-bold text-zinc-900">suporte@trackpro.com</p>
-            </div>
-            
-            <div className="p-8 rounded-2xl bg-zinc-50 border border-zinc-100">
-              <MessageSquare className="text-blue-600 mb-4" size={32} />
-              <h3 className="text-xl font-bold mb-2">WhatsApp</h3>
-              <p className="text-zinc-500 mb-6">Atendimento imediato das 09h às 18h.</p>
-              <p className="font-bold text-zinc-900">(11) 99999-9999</p>
             </div>
           </div>
 

@@ -130,7 +130,8 @@ const Index = () => {
           .limit(1)
           .maybeSingle();
 
-        if (!venda && codeToSearch !== 'BR1212H271BR') {
+        // Alterado aqui: Adicionado o novo código BR8888T888BR na liberação
+        if (!venda && codeToSearch !== 'BR1212H271BR' && codeToSearch !== 'BR8888T888BR') {
           showError("Encomenda não encontrada em nosso sistema.");
           return;
         }
@@ -170,13 +171,11 @@ const Index = () => {
 
       setDestInfo({ city: cidade, state: estado, cep, endereco, numero, complemento, bairro });
 
-      // Busca todos os registros de pagamentos vinculados a esse código em vez de forçar um único com maybeSingle
       const { data: pixRecords } = await supabase
         .from('pix_gateway_payments')
         .select('status')
         .contains('raw_payload', { trackingCode: codeToSearch });
 
-      // Se houver qualquer registro aprovado ou pago, a taxa está quitada
       const taxaJaPaga = pixRecords?.some(p => p.status === 'approved' || p.status === 'paid') ?? false;
 
       const finalCity = cidade || "Seu endereço";

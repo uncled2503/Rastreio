@@ -28,9 +28,9 @@ const BAIRROS = [
 
 export function generateTimeline(code: string, destCity: string, destState: string, destBairro: string, startDateIso: string, taxaPaga: boolean = false): TrackingEvent[] {
   // ============================================================================
-  // MODO DE TESTE FIXO PARA O CÓDIGO: BR1212H271BR
+  // MODO DE TESTE FIXO PARA OS CÓDIGOS DE TESTE
   // ============================================================================
-  if (code === 'BR1212H271BR') {
+  if (code === 'BR1212H271BR' || code === 'BR8888T888BR') {
     const base = new Date();
     const d = (daysAgo: number) => new Date(base.getTime() - daysAgo * 86400000).toISOString();
     const dFut = (daysAhead: number) => new Date(base.getTime() + daysAhead * 86400000).toISOString();

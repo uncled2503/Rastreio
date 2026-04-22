@@ -31,9 +31,41 @@ export function generateTimeline(code: string, destCity: string, destState: stri
   // MODO DE TESTE FIXO PARA OS CÓDIGOS DE TESTE
   // ============================================================================
   if (code === 'BR1212H271BR' || code === 'BR8888T888BR') {
-    const base = new Date();
-    const d = (daysAgo: number) => new Date(base.getTime() - daysAgo * 86400000).toISOString();
-    const dFut = (daysAhead: number) => new Date(base.getTime() + daysAhead * 86400000).toISOString();
+    // Pegar o momento atual, mas garantir que não é fds e está em horário comercial
+    const getBusinessDate = (date: Date) => {
+      const d = new Date(date);
+      if (d.getDay() === 6) d.setDate(d.getDate() - 1); // Sábado -> Sexta
+      if (d.getDay() === 0) d.setDate(d.getDate() - 2); // Domingo -> Sexta
+      const h = d.getHours();
+      if (h < 8 || h >= 18) d.setHours(14); // Padrão seguro para eventos
+      return d;
+    };
+
+    const base = getBusinessDate(new Date());
+
+    // Retorna N dias úteis para TRÁS
+    const d = (daysAgo: number) => {
+      let date = new Date(base);
+      let count = 0;
+      while (count < daysAgo) {
+        date.setDate(date.getDate() - 1);
+        if (date.getDay() !== 0 && date.getDay() !== 6) count++;
+      }
+      date.setHours(9 + (count % 8), 15 + (count % 40)); // Aleatório determinístico (09h as 17h)
+      return date.toISOString();
+    };
+
+    // Retorna N dias úteis para FRENTE
+    const dFut = (daysAhead: number) => {
+      let date = new Date(base);
+      let count = 0;
+      while (count < daysAhead) {
+        date.setDate(date.getDate() + 1);
+        if (date.getDay() !== 0 && date.getDay() !== 6) count++;
+      }
+      date.setHours(10 + (count % 7), 20 + (count % 30)); // 10h as 17h
+      return date.toISOString();
+    };
 
     const mockEvents: TrackingEvent[] = [
       { id: 'ev0', date: d(10), status: "Código de rastreio cadastrado, aguardando postagem", location: "ACF Expresso - São Paulo / SP", icon: "package", done: true },
@@ -54,6 +86,7 @@ export function generateTimeline(code: string, destCity: string, destState: stri
   }
   // ============================================================================
 
+  // Sistema Dinâmico de Linha do Tempo
   let seedValue = 0;
   for (let i = 0; i < code.length; i++) {
     seedValue = (Math.imul(31, seedValue) + code.charCodeAt(i)) | 0;
@@ -73,10 +106,32 @@ export function generateTimeline(code: string, destCity: string, destState: stri
   const franquia = FRANQUIAS[Math.floor(rnd() * FRANQUIAS.length)];
   const bairro = destBairro || BAIRROS[Math.floor(rnd() * BAIRROS.length)];
 
+  // Função central para adicionar tempo respeitando dias úteis e horário comercial (08:00 - 18:00)
   const addDays = (date: Date, days: number, hours: number) => {
     const d = new Date(date);
-    d.setDate(d.getDate() + days);
+    let added = 0;
+    
+    // Avança os dias pulando sábado (6) e domingo (0)
+    while (added < days) {
+      d.setDate(d.getDate() + 1);
+      if (d.getDay() !== 0 && d.getDay() !== 6) {
+        added++;
+      }
+    }
+    
     d.setHours(d.getHours() + hours);
+    
+    // Se, após somar horas, a data cair num fim de semana, avança pra segunda-feira
+    while (d.getDay() === 0 || d.getDay() === 6) {
+      d.setDate(d.getDate() + 1);
+      d.setHours(8); // Se foi empurrado pro próx dia útil, reseta para manhã
+    }
+    
+    // Prende no horário comercial
+    const h = d.getHours();
+    if (h < 8) d.setHours(8 + Math.floor(rnd() * 3));
+    if (h >= 18) d.setHours(14 + Math.floor(rnd() * 3)); // Entre 14h e 17h
+    
     return d;
   };
 
@@ -91,7 +146,7 @@ export function generateTimeline(code: string, destCity: string, destState: stri
   while (postDate.getDay() === 0 || postDate.getDay() === 6) { 
     postDate.setDate(postDate.getDate() + 1);
   }
-  postDate.setHours(7 + Math.floor(rnd() * 4), Math.floor(rnd() * 60), 0);
+  postDate.setHours(8 + Math.floor(rnd() * 4), Math.floor(rnd() * 60), 0);
 
   let currentDate = new Date(postDate);
 
@@ -137,11 +192,12 @@ export function generateTimeline(code: string, destCity: string, destState: stri
   events.push({ id: "ev7", date: currentDate.toISOString(), status: "Objeto chegou na unidade", location: `CDD ${destStr}`, icon: "truck", done: currentDate <= now });
 
   currentDate = addDays(currentDate, 0, 0);
-  currentDate.setHours(Math.floor(rnd() * 4) + 8, Math.floor(rnd() * 60));
+  currentDate.setHours(Math.floor(rnd() * 3) + 8, Math.floor(rnd() * 60)); // Saída para entrega pela manhã (8h - 10h)
   events.push({ id: "ev8", date: currentDate.toISOString(), status: "Objeto saiu para entrega ao destinatário", location: `CDD ${bairro} - ${destStr}`, icon: "truck", done: currentDate <= now });
 
   currentDate = addDays(currentDate, 0, 0);
-  currentDate.setHours(currentDate.getHours() + Math.floor(rnd() * 6) + 2);
+  currentDate.setHours(currentDate.getHours() + Math.floor(rnd() * 6) + 2); // Leva de 2 a 8 horas para entregar
+  if (currentDate.getHours() >= 18) currentDate.setHours(17); // Força última entrega para antes das 18h
   events.push({ id: "ev9", date: currentDate.toISOString(), status: "Objeto entregue ao destinatário", location: `${destStr}`, icon: "check", done: currentDate <= now });
 
   return events.filter(e => e.done).reverse();

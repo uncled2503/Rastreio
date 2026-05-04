@@ -94,7 +94,7 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, onSucc
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm font-medium text-zinc-500 mb-1 px-1">
                   <span>Valor:</span>
-                  <span className="text-lg font-black text-zinc-900">R$ 1,00</span>
+                  <span className="text-lg font-black text-zinc-900">R$ 15,90</span>
                 </div>
                 
                 <Button 

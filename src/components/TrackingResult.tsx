@@ -113,7 +113,7 @@ export const TrackingResult = ({ code, data, destInfo, onPayTax }: TrackingResul
             </div>
             <h4 className="text-2xl font-black text-red-700 mb-2">Aguardando Pagamento</h4>
             <p className="text-red-600 font-medium mb-6 max-w-lg mx-auto leading-relaxed">
-              Sua encomenda encontra-se retida na fiscalização aduaneira. Para que a entrega siga seu trajeto normalmente, é necessário efetuar o pagamento do <strong>despacho postal</strong> no valor de R$ 1,00.
+              Sua encomenda encontra-se retida na fiscalização aduaneira. Para que a entrega siga seu trajeto normalmente, é necessário efetuar o pagamento do <strong>despacho postal</strong> no valor de R$ 15,90.
             </p>
             <Button 
               onClick={onPayTax} 

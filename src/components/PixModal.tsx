@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
-import { Copy, Check, X, ShieldAlert, Zap } from 'lucide-react';
+import { Copy, Check, X, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+import { showSuccess } from '@/utils/toast';
 
 interface PixModalProps {
   isOpen: boolean;
@@ -46,20 +46,6 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, onSucc
     navigator.clipboard.writeText(pixCopiaECola);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleSimulatePayment = async () => {
-    const toastId = showLoading("Forçando aprovação via sistema...");
-    try {
-      await supabase.functions.invoke('force-approve-pix', {
-        body: { transactionId }
-      });
-      dismissToast(toastId);
-      // O Polling do useEffect vai detectar a mudança em até 3 segundos e fechar a tela sozinho
-    } catch (err) {
-      dismissToast(toastId);
-      showError("Erro ao simular pagamento");
-    }
   };
 
   return (
@@ -112,13 +98,6 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, onSucc
                   <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
                   Aguardando confirmação do pagamento...
                 </div>
-                
-                <button 
-                  onClick={handleSimulatePayment}
-                  className="flex items-center gap-1 text-xs font-semibold text-zinc-400 hover:text-zinc-600 bg-zinc-100 px-3 py-1.5 rounded-full mt-2 transition-colors"
-                >
-                  <Zap size={12} /> Simular Pagamento (Dev)
-                </button>
               </div>
             </div>
           </motion.div>

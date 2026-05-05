@@ -1,0 +1,240 @@
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { TrackingResult } from '@/components/TrackingResult';
+import { PixModal } from '@/components/PixModal';
+import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+import { supabase } from '@/integrations/supabase/client';
+import { generateTimeline, type TrackingEvent } from '@/utils/tracking';
+
+const Embed = () => {
+  const [searchParams] = useSearchParams();
+  const [trackingCode, setTrackingCode] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResult, setShowResult] = useState(false);
+  const [events, setEvents] = useState<TrackingEvent[]>([]);
+  const [destInfo, setDestInfo] = useState({ 
+    city: '', state: '', cep: '', endereco: '', numero: '', complemento: '', bairro: '' 
+  });
+  
+  const [isPixModalOpen, setIsPixModalOpen] = useState(false);
+  const [pixCopiaECola, setPixCopiaECola] = useState('');
+  const [pixTransactionId, setPixTransactionId] = useState('');
+
+  // Auto-busca se o código for passado na URL (ex: ?codigo=BR123456789BR)
+  useEffect(() => {
+    const codeFromUrl = searchParams.get('codigo') || searchParams.get('code');
+    if (codeFromUrl && codeFromUrl.length >= 12) {
+      const upperCode = codeFromUrl.toUpperCase();
+      setTrackingCode(upperCode);
+      performSearch(upperCode);
+    }
+  }, [searchParams]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.toUpperCase();
+    const index = value.length - 1;
+    const char = value[index];
+
+    if (value.length < trackingCode.length) {
+      setTrackingCode(value);
+      return;
+    }
+
+    if (value.length > 12) return;
+
+    const isDigit = (c: string) => /\d/.test(c);
+    const isAlpha = (c: string) => /[A-Z]/.test(c);
+
+    let isValid = true;
+    if (index === 0 && char !== 'B') isValid = false;
+    else if (index === 1 && char !== 'R') isValid = false;
+    else if (index >= 2 && index <= 5 && !isDigit(char)) isValid = false;
+    else if (index === 6 && !isAlpha(char)) isValid = false;
+    else if (index >= 7 && index <= 9 && !isDigit(char)) isValid = false;
+    else if (index === 10 && char !== 'B') isValid = false;
+    else if (index === 11 && char !== 'R') isValid = false;
+
+    if (isValid) setTrackingCode(value);
+  };
+
+  const performSearch = async (codeToSearch: string) => {
+    setIsSearching(true);
+    const loadingId = showLoading("Buscando informações da sua encomenda...");
+    
+    try {
+      let cidade = "";
+      let estado = "";
+      let cep = "";
+      let endereco = "";
+      let numero = "";
+      let complemento = "";
+      let bairro = "";
+      let dataCriacao = new Date().toISOString();
+
+      const { data: lead } = await supabase
+        .from('leads')
+        .select('cidade, estado, cep, endereco, numero, complemento, bairro, created_at')
+        .eq('codigo_rastreio', codeToSearch)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (lead) {
+        if (lead.cidade) cidade = lead.cidade;
+        if (lead.estado) estado = lead.estado;
+        if (lead.cep) cep = lead.cep;
+        if (lead.endereco) endereco = lead.endereco;
+        if (lead.numero) numero = lead.numero;
+        if (lead.complemento) complemento = lead.complemento;
+        if (lead.bairro) bairro = lead.bairro;
+        if (lead.created_at) dataCriacao = lead.created_at;
+      } else {
+        const { data: venda } = await supabase
+          .from('vendas')
+          .select('created_at, lead_id, cliente_nome')
+          .eq('codigo_rastreio', codeToSearch)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!venda && codeToSearch !== 'BR1212H271BR' && codeToSearch !== 'BR8888T888BR') {
+          showError("Encomenda não encontrada em nosso sistema.");
+          return;
+        }
+
+        if (venda?.created_at) dataCriacao = venda.created_at;
+
+        if (venda?.lead_id) {
+          const { data: leadDaVenda } = await supabase
+            .from('leads')
+            .select('cidade, estado, cep, endereco, numero, complemento, bairro')
+            .eq('id', venda.lead_id)
+            .limit(1)
+            .maybeSingle();
+            
+          if (leadDaVenda) {
+            if (leadDaVenda.cidade) cidade = leadDaVenda.cidade;
+            if (leadDaVenda.estado) estado = leadDaVenda.estado;
+            if (leadDaVenda.cep) cep = leadDaVenda.cep;
+            if (leadDaVenda.endereco) endereco = leadDaVenda.endereco;
+            if (leadDaVenda.numero) numero = leadDaVenda.numero;
+            if (leadDaVenda.complemento) complemento = leadDaVenda.complemento;
+            if (leadDaVenda.bairro) bairro = leadDaVenda.bairro;
+          }
+        }
+      }
+
+      setDestInfo({ city: cidade, state: estado, cep, endereco, numero, complemento, bairro });
+
+      const { data: statusData } = await supabase.functions.invoke('check-pix-status', {
+        body: { trackingCode: codeToSearch }
+      });
+      const taxaJaPaga = statusData?.taxaPaga ?? false;
+
+      const finalCity = cidade || "Seu endereço";
+      const finalState = cidade ? estado : "";
+
+      const timeline = generateTimeline(codeToSearch, finalCity, finalState, bairro, dataCriacao, taxaJaPaga);
+      
+      setEvents(timeline);
+      setShowResult(true);
+      showSuccess("Encomenda localizada com sucesso!");
+
+    } catch (err) {
+      console.error("Erro na busca:", err);
+      showError("Ocorreu um erro ao comunicar com a base de dados.");
+    } finally {
+      dismissToast(loadingId);
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (trackingCode.length < 12) {
+      showError("O código deve seguir o padrão completo: BR0000X000BR");
+      return;
+    }
+    performSearch(trackingCode);
+  };
+
+  const handlePayTax = async () => {
+    const loadingId = showLoading("Gerando código PIX...");
+    try {
+      const { data, error } = await supabase.functions.invoke('create-tax-pix', {
+        body: { trackingCode }
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      setPixTransactionId(data.idTransaction);
+      setPixCopiaECola(data.pixCopiaECola);
+      setIsPixModalOpen(true);
+    } catch (err) {
+      console.error(err);
+      showError("Não foi possível gerar o código PIX. Tente novamente.");
+    } finally {
+      dismissToast(loadingId);
+    }
+  };
+
+  const handlePaymentSuccess = () => {
+    setIsPixModalOpen(false);
+    performSearch(trackingCode);
+  };
+
+  return (
+    <div className="min-h-screen bg-transparent p-4 md:p-8 font-sans">
+      <PixModal 
+        isOpen={isPixModalOpen} 
+        onClose={() => setIsPixModalOpen(false)} 
+        pixCopiaECola={pixCopiaECola}
+        transactionId={pixTransactionId}
+        onSuccess={handlePaymentSuccess}
+      />
+
+      <div className="w-full max-w-3xl mx-auto">
+        <form onSubmit={handleSearch} className="mb-8">
+          <div className="flex flex-col md:flex-row gap-3 p-2 bg-white border border-zinc-200 rounded-3xl shadow-lg">
+            <div className="flex-1 flex items-center px-4 gap-3">
+              <Search className="text-zinc-400 shrink-0" size={24} />
+              <input 
+                type="text" 
+                placeholder="BR0000A000BR"
+                className="w-full h-12 md:h-14 outline-none text-lg font-mono font-bold tracking-widest text-zinc-800 placeholder:text-zinc-300"
+                value={trackingCode}
+                maxLength={12}
+                onChange={handleInputChange}
+              />
+            </div>
+            <Button 
+              type="submit"
+              disabled={isSearching}
+              className="bg-green-600 hover:bg-green-700 text-white h-12 md:h-14 px-8 text-base font-black rounded-2xl transition-all shadow-md active:scale-[0.98]"
+            >
+              {isSearching ? 'BUSCANDO...' : 'RASTREAR'}
+            </Button>
+          </div>
+        </form>
+
+        {showResult && (
+          <div className="-mt-6">
+            <TrackingResult 
+              code={trackingCode} 
+              data={events} 
+              destInfo={destInfo}
+              onPayTax={handlePayTax}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Embed;

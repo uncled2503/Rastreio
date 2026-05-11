@@ -27,8 +27,8 @@ const BAIRROS = [
 ];
 
 export function generateTimeline(code: string, destCity: string, destState: string, destBairro: string, startDateIso: string, taxaPaga: boolean = false): TrackingEvent[] {
-  // MODO DE TESTE FIXO (Agora inclui o código de 1 Real)
-  if (code === 'BR1212H271BR' || code === 'BR8888T888BR' || code === 'BR00000001BR') {
+  // MODO DE TESTE FIXO (Agora inclui o código BR9999K999BR)
+  if (code === 'BR1212H271BR' || code === 'BR8888T888BR' || code === 'BR00000001BR' || code === 'BR9999K999BR') {
     const getBusinessDate = (date: Date) => {
       const d = new Date(date);
       if (d.getDay() === 6) d.setDate(d.getDate() - 1);
@@ -61,7 +61,7 @@ export function generateTimeline(code: string, destCity: string, destState: stri
     return mockEvents.filter(e => e.done).reverse();
   }
 
-  // LÓGICA DINÂMICA PARA LEADS REAIS (Sem alterações aqui)
+  // LÓGICA DINÂMICA PARA LEADS REAIS
   let seedValue = 0;
   for (let i = 0; i < code.length; i++) seedValue = (Math.imul(31, seedValue) + code.charCodeAt(i)) | 0;
   

@@ -420,9 +420,6 @@ const Index = () => {
                 </Button>
               </div>
             </form>
-            <p className="mt-4 text-sm text-zinc-400 font-medium">
-              Dica: Teste com o código <button onClick={() => { setTrackingCode('BR1REAL111BR'); performSearch('BR1REAL111BR'); }} className="text-green-600 font-bold hover:underline">BR1REAL111BR</button> para pagar apenas R$ 1,00.
-            </p>
           </motion.div>
 
           <motion.div 

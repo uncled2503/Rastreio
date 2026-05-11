@@ -16,7 +16,6 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // 1. Verificação por ID de Transação (polling do Modal)
     if (body.transactionId) {
       const { data } = await supabase
         .from('pix_gateway_payments')
@@ -24,30 +23,27 @@ serve(async (req) => {
         .eq('id_transaction', String(body.transactionId))
         .maybeSingle();
 
-      const status = data?.status?.toLowerCase() || 'pending';
-      const isPaid = ['paid', 'approved', 'saquepago'].includes(status);
-
-      return new Response(JSON.stringify({ status: isPaid ? 'paid' : status }), { headers: corsHeaders });
+      return new Response(JSON.stringify({ status: data?.status || 'pending' }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
     }
 
-    // 2. Verificação por Código de Rastreio (timeline)
     if (body.trackingCode) {
       const { data } = await supabase
         .from('pix_gateway_payments')
         .select('status')
         .contains('raw_payload', { trackingCode: body.trackingCode });
         
-      const taxaPaga = data?.some(p => {
-        const s = String(p.status || '').toLowerCase();
-        return ['paid', 'approved', 'saquepago'].includes(s);
-      }) ?? false;
+      const taxaPaga = data?.some(p => p.status === 'paid') ?? false;
       
-      return new Response(JSON.stringify({ taxaPaga }), { headers: corsHeaders });
+      return new Response(JSON.stringify({ taxaPaga }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
     }
 
-    return new Response(JSON.stringify({ error: "Parâmetros ausentes" }), { headers: corsHeaders, status: 400 });
+    return new Response(JSON.stringify({ error: "Missing params" }), { status: 400, headers: corsHeaders });
 
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), { headers: corsHeaders, status: 500 });
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
   }
 })

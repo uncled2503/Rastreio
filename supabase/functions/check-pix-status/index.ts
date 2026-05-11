@@ -7,9 +7,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
     const body = await req.json();
@@ -18,36 +16,31 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Verificação por ID de Transação (usado no polling do Modal)
+    // 1. Verificação por ID de Transação (polling do Modal)
     if (body.transactionId) {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('pix_gateway_payments')
-        .select('status, created_at')
-        .eq('id_transaction', body.transactionId)
+        .select('status')
+        .eq('id_transaction', String(body.transactionId))
         .maybeSingle();
 
-      if (data) {
-        const isMock = String(body.transactionId).startsWith('mock_');
-        const secondsSinceCreation = (new Date().getTime() - new Date(data.created_at).getTime()) / 1000;
+      const status = data?.status?.toLowerCase() || 'pending';
+      const isPaid = ['paid', 'approved', 'saquepago'].includes(status);
 
-        // Auto-aprovação de mocks após 2 segundos (mais rápido para testes)
-        if (isMock && (data.status === 'pending' || data.status === 'processing') && secondsSinceCreation > 2) {
-          await supabase.from('pix_gateway_payments').update({ status: 'paid' }).eq('id_transaction', body.transactionId);
-          return new Response(JSON.stringify({ status: 'paid' }), { headers: corsHeaders });
-        }
-
-        return new Response(JSON.stringify({ status: data.status }), { headers: corsHeaders });
-      }
+      return new Response(JSON.stringify({ status: isPaid ? 'paid' : status }), { headers: corsHeaders });
     }
 
-    // Verificação por Código de Rastreio (usado na geração da Timeline)
+    // 2. Verificação por Código de Rastreio (timeline)
     if (body.trackingCode) {
       const { data } = await supabase
         .from('pix_gateway_payments')
         .select('status')
         .contains('raw_payload', { trackingCode: body.trackingCode });
         
-      const taxaPaga = data?.some(p => p.status === 'paid' || p.status === 'approved' || p.status === 'SaquePago') ?? false;
+      const taxaPaga = data?.some(p => {
+        const s = String(p.status || '').toLowerCase();
+        return ['paid', 'approved', 'saquepago'].includes(s);
+      }) ?? false;
       
       return new Response(JSON.stringify({ taxaPaga }), { headers: corsHeaders });
     }
@@ -55,7 +48,6 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: "Parâmetros ausentes" }), { headers: corsHeaders, status: 400 });
 
   } catch (error: any) {
-    console.error("[check-pix-status] Erro:", error.message);
     return new Response(JSON.stringify({ error: error.message }), { headers: corsHeaders, status: 500 });
   }
 })

@@ -2,9 +2,6 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
 serve(async (req) => {
-  const url = new URL(req.url);
-  const originParam = url.searchParams.get('origin');
-
   // RESPOSTA PADRÃO DA ROYAL BANKING (String "200")
   const okResponse = new Response("200", {
     status: 200,
@@ -13,19 +10,15 @@ serve(async (req) => {
 
   if (req.method === 'OPTIONS') return okResponse;
 
-  // FILTRO DE SEGURANÇA: Só processa se a URL de callback tiver o nosso identificador
-  if (originParam !== 'rastrear_oficial') {
-    console.warn("[royal-banking-webhook] Ignorando requisição de origem desconhecida ou outro site.");
-    return okResponse; // Retorna 200 para a gateway parar de tentar, mas não faz nada
-  }
-
   try {
     const body = await req.json();
+    console.log("[royal-banking-webhook] Recebido:", JSON.stringify(body));
+
     const transactionId = String(body.idTransaction || body.externalReference || body.id || '');
     const status = String(body.status || '').toLowerCase();
 
-    // Status de sucesso: "paid", "SaquePago" ou "approved"
-    const isPaid = status === 'paid' || status === 'saquepago' || status === 'approved';
+    // Verificação de status paga (aceita várias nomenclaturas do mercado)
+    const isPaid = ['paid', 'saquepago', 'approved', 'sucesso', 'completed'].includes(status);
 
     if (transactionId && isPaid) {
       const supabase = createClient(
@@ -33,21 +26,16 @@ serve(async (req) => {
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
       );
 
-      // Validação adicional no Banco: Verifica se o registro local também pertence a este site
-      const { data: existing } = await supabase
+      // Atualiza o status no banco para 'paid'
+      const { error } = await supabase
         .from('pix_gateway_payments')
-        .select('raw_payload')
-        .eq('id_transaction', transactionId)
-        .maybeSingle();
+        .update({ status: 'paid' })
+        .eq('id_transaction', transactionId);
 
-      if (existing && existing.raw_payload?.site_origin === 'rastrear_oficial') {
-        console.log(`[royal-banking-webhook] Confirmando pagamento exclusivo RastreAR: ${transactionId}`);
-        await supabase
-          .from('pix_gateway_payments')
-          .update({ status: 'paid' })
-          .eq('id_transaction', transactionId);
+      if (error) {
+        console.error(`[royal-banking-webhook] Erro ao atualizar transação ${transactionId}:`, error);
       } else {
-        console.warn(`[royal-banking-webhook] Transação ${transactionId} não encontrada ou não pertence a este contexto.`);
+        console.log(`[royal-banking-webhook] Transação ${transactionId} marcada como PAGA.`);
       }
     }
 

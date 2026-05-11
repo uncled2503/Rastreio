@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
-import { Copy, Check, X, ShieldAlert, Zap } from 'lucide-react';
+import { Copy, Check, X, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { showSuccess, showError } from '@/utils/toast';
+import { showSuccess } from '@/utils/toast';
 
 interface PixModalProps {
   isOpen: boolean;
@@ -19,10 +19,8 @@ interface PixModalProps {
 
 export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount = 15.90, onSuccess }: PixModalProps) => {
   const [copied, setCopied] = useState(false);
-  const [isSimulating, setIsSimulating] = useState(false);
   const [attempts, setAttempts] = useState(0);
-  const isMock = transactionId?.startsWith('mock_');
-  const MAX_ATTEMPTS = 120; 
+  const MAX_ATTEMPTS = 200; 
 
   useEffect(() => {
     if (!isOpen || !transactionId || attempts >= MAX_ATTEMPTS) return;
@@ -33,7 +31,7 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount
           body: { transactionId }
         });
 
-        if (!error && data && (data.status === 'approved' || data.status === 'paid')) {
+        if (!error && data && data.status === 'paid') {
           showSuccess("Pagamento confirmado com sucesso!");
           onSuccess();
         }
@@ -44,8 +42,7 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount
       }
     };
 
-    // Reduzido para 5 segundos para testes mais rápidos
-    const interval = setInterval(checkPayment, 5000);
+    const interval = setInterval(checkPayment, 4000);
     return () => clearInterval(interval);
   }, [isOpen, transactionId, attempts, onSuccess]);
 
@@ -53,21 +50,6 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount
     navigator.clipboard.writeText(pixCopiaECola);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleSimulate = async () => {
-    setIsSimulating(true);
-    try {
-      const { error } = await supabase.functions.invoke('force-approve-pix', {
-        body: { transactionId }
-      });
-      if (error) throw error;
-      showSuccess("Simulação enviada! Aguarde a confirmação.");
-    } catch (err) {
-      showError("Erro ao simular aprovação.");
-    } finally {
-      setIsSimulating(false);
-    }
   };
 
   return (
@@ -107,27 +89,14 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount
                   </span>
                 </div>
                 
-                <div className="grid grid-cols-1 gap-2">
-                  <Button 
-                    onClick={handleCopy}
-                    variant="outline" 
-                    className="w-full h-12 text-sm font-bold flex items-center justify-center gap-2 border-2"
-                  >
-                    {copied ? <Check className="text-green-500" size={18} /> : <Copy size={18} />}
-                    {copied ? 'CÓDIGO COPIADO' : 'COPIAR CÓDIGO PIX'}
-                  </Button>
-
-                  {isMock && (
-                    <Button 
-                      onClick={handleSimulate}
-                      disabled={isSimulating}
-                      className="w-full h-12 bg-green-600 hover:bg-green-700 text-white text-sm font-black flex items-center justify-center gap-2"
-                    >
-                      <Zap size={16} />
-                      {isSimulating ? 'SIMULANDO...' : 'SIMULAR APROVAÇÃO'}
-                    </Button>
-                  )}
-                </div>
+                <Button 
+                  onClick={handleCopy}
+                  variant="outline" 
+                  className="w-full h-12 text-sm font-bold flex items-center justify-center gap-2 border-2 border-zinc-200"
+                >
+                  {copied ? <Check className="text-green-500" size={18} /> : <Copy size={18} />}
+                  {copied ? 'CÓDIGO COPIADO' : 'COPIAR CÓDIGO PIX'}
+                </Button>
               </div>
 
               <div className="pt-4 border-t border-zinc-100 flex flex-col items-center gap-3">
@@ -135,7 +104,7 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount
                   {attempts < MAX_ATTEMPTS ? (
                     <>
                       <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                      Aguardando confirmação do pagamento...
+                      Aguardando confirmação do banco...
                     </>
                   ) : (
                     <span className="text-red-500 font-bold">Tempo expirado. Gere um novo código.</span>

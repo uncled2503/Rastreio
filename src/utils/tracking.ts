@@ -28,6 +28,10 @@ export function generateTimeline(
   const events: TrackingEvent[] = [];
   const destStr = destState ? `${destCity} / ${destState}` : destCity;
   
+  // Customização para o código de teste de 1 Real
+  const isOneRealTest = code === 'BR1REAL111BR';
+  const firstTaxAmount = isOneRealTest ? 1.00 : 19.90;
+  
   // --- BLOCO 1: INÍCIO ATÉ O 7º DIA ---
   events.push({ id: "ev0", date: start.toISOString(), status: "Objeto postado", location: "Agência dos Correios - São Paulo / SP", icon: "package", done: true });
   events.push({ id: "ev1", date: addDays(start, 2).toISOString(), status: "Objeto encaminhado", location: "CTE São Paulo / SP", destination: "CTE Curitiba / PR", icon: "truck", done: true });
@@ -44,7 +48,7 @@ export function generateTimeline(
     icon: tax1Paid ? "shield" : "alert", 
     done: true,
     isTaxEvent: !tax1Paid,
-    taxAmount: 19.90
+    taxAmount: firstTaxAmount
   });
 
   // --- BLOCO 2: DO PAGAMENTO 1 ATÉ O 10º DIA ---

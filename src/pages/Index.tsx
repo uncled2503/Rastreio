@@ -130,7 +130,9 @@ const Index = () => {
           .limit(1)
           .maybeSingle();
 
-        if (!venda && codeToSearch !== 'BR1212H271BR' && codeToSearch !== 'BR8888T888BR') {
+        const isTestCode = ['BR1212H271BR', 'BR8888T888BR', 'BR1REAL111BR'].includes(codeToSearch);
+
+        if (!venda && !isTestCode) {
           showError("Encomenda não encontrada em nosso sistema.");
           return;
         }

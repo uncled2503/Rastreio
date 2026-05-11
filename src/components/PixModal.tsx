@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import { Copy, Check, X, ShieldAlert } from 'lucide-react';
@@ -20,31 +20,41 @@ interface PixModalProps {
 export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount = 15.90, onSuccess }: PixModalProps) => {
   const [copied, setCopied] = useState(false);
   const [attempts, setAttempts] = useState(0);
-  const MAX_ATTEMPTS = 200; 
+  const isChecking = useRef(false);
+  const MAX_ATTEMPTS = 300; // Aumentado para cobrir um tempo maior com intervalo menor
 
   useEffect(() => {
     if (!isOpen || !transactionId || attempts >= MAX_ATTEMPTS) return;
 
     const checkPayment = async () => {
+      if (isChecking.current) return;
+      isChecking.current = true;
+
       try {
         const { data, error } = await supabase.functions.invoke('check-pix-status', {
           body: { transactionId }
         });
 
-        if (!error && data && data.status === 'paid') {
+        if (!error && data && (data.status === 'paid' || data.status === 'approved')) {
           showSuccess("Pagamento confirmado com sucesso!");
           onSuccess();
+          return;
         }
         
         setAttempts(prev => prev + 1);
       } catch (err) {
         console.error("Erro ao checar status do PIX:", err);
+      } finally {
+        isChecking.current = false;
       }
     };
 
-    const interval = setInterval(checkPayment, 4000);
+    // Primeira verificação imediata
+    checkPayment();
+
+    const interval = setInterval(checkPayment, 3000);
     return () => clearInterval(interval);
-  }, [isOpen, transactionId, attempts, onSuccess]);
+  }, [isOpen, transactionId, onSuccess]); // Removido 'attempts' da dependência para evitar re-instanciar o timer a cada tentativa
 
   const handleCopy = () => {
     navigator.clipboard.writeText(pixCopiaECola);

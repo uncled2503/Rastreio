@@ -23,7 +23,7 @@ serve(async (req) => {
       const { data } = await supabase
         .from('pix_gateway_payments')
         .select('status')
-        .eq('id_transaction', body.transactionId)
+        .eq('id_transaction', String(body.transactionId))
         .maybeSingle();
         
       return new Response(JSON.stringify({ status: data?.status || 'pending' }), {
@@ -33,12 +33,20 @@ serve(async (req) => {
 
     // Consulta para a Busca de Rastreio (Verifica se qualquer transação deste código foi paga)
     if (body.trackingCode) {
-      const { data } = await supabase
+      // Usando filtro de texto no JSON para maior compatibilidade e precisão
+      const { data, error } = await supabase
         .from('pix_gateway_payments')
-        .select('status')
-        .contains('raw_payload', { trackingCode: body.trackingCode });
+        .select('status, raw_payload')
+        .filter('raw_payload->>trackingCode', 'eq', body.trackingCode);
+
+      if (error) throw error;
         
-      const taxaPaga = data?.some(p => p.status === 'approved' || p.status === 'paid') ?? false;
+      const taxaPaga = data?.some(p => 
+        p.status === 'approved' || 
+        p.status === 'paid' || 
+        p.status === 'success' || 
+        p.status === 'concluded'
+      ) ?? false;
       
       return new Response(JSON.stringify({ taxaPaga }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

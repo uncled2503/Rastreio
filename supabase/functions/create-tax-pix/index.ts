@@ -18,8 +18,8 @@ serve(async (req) => {
       throw new Error("Tracking code is required");
     }
 
-    // Define o valor: 1.00 para o código especial, senão 15.90
-    const amount = trackingCode === 'BR00000001BR' ? 1.00 : 15.90;
+    // Define o valor: 1.00 para códigos especiais de teste, senão 15.90
+    const amount = (trackingCode === 'BR00000001BR' || trackingCode === 'BR9999K999BR') ? 1.00 : 15.90;
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',

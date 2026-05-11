@@ -64,7 +64,8 @@ export const TrackingResult = ({ code, data, destInfo, onPayTax }: TrackingResul
   const isConfiscated = data[0]?.icon === 'alert';
   
   // Define o valor dinamicamente para o texto de alerta
-  const taxAmount = code === 'BR00000001BR' ? "1,00" : "15,90";
+  const isSpecialCode = code === 'BR00000001BR' || code === 'BR9999K999BR';
+  const taxAmount = isSpecialCode ? "1,00" : "15,90";
 
   const originFullString = data[data.length - 1]?.location || 'São Paulo / SP';
   const originParts = originFullString.split(' - ');
@@ -126,7 +127,6 @@ export const TrackingResult = ({ code, data, destInfo, onPayTax }: TrackingResul
           </motion.div>
         )}
 
-        {/* ... Restante do componente (idêntico ao anterior) */}
         <div className="my-10 bg-zinc-50/50 rounded-2xl p-6 border border-zinc-100">
           <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3 px-1">
             <span>Origem</span>

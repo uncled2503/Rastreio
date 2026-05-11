@@ -20,11 +20,9 @@ interface PlanPixModalProps {
 
 export const PlanPixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, planName, amount, onSuccess }: PlanPixModalProps) => {
   const [copied, setCopied] = useState(false);
-  const [attempts, setAttempts] = useState(0);
-  const MAX_ATTEMPTS = 120; // 30 minutos
 
   useEffect(() => {
-    if (!isOpen || !transactionId || attempts >= MAX_ATTEMPTS) return;
+    if (!isOpen || !transactionId) return;
 
     const checkPayment = async () => {
       try {
@@ -36,16 +34,14 @@ export const PlanPixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, pl
           showSuccess("Pagamento confirmado! Bem-vindo ao novo plano.");
           onSuccess();
         }
-        
-        setAttempts(prev => prev + 1);
       } catch (err) {
         console.error("Erro:", err);
       }
     };
 
-    const interval = setInterval(checkPayment, 15000); 
+    const interval = setInterval(checkPayment, 3000); 
     return () => clearInterval(interval);
-  }, [isOpen, transactionId, attempts, onSuccess]);
+  }, [isOpen, transactionId, onSuccess]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(pixCopiaECola);
@@ -61,7 +57,7 @@ export const PlanPixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, pl
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            className="bg-white rounded-3xl max-md w-full overflow-hidden shadow-2xl relative"
+            className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl relative"
           >
             <div className="bg-green-600 p-6 text-center text-white relative">
               <button 
@@ -102,14 +98,8 @@ export const PlanPixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, pl
 
               <div className="pt-4 border-t border-zinc-100 flex flex-col items-center gap-3">
                 <div className="flex items-center justify-center gap-3 text-sm text-zinc-500">
-                  {attempts < MAX_ATTEMPTS ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
-                      Aguardando confirmação do pagamento...
-                    </>
-                  ) : (
-                    <span className="text-red-500 font-bold">Sessão expirada.</span>
-                  )}
+                  <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                  Aguardando confirmação do pagamento...
                 </div>
               </div>
             </div>

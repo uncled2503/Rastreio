@@ -63,6 +63,9 @@ export const TrackingResult = ({ code, data, destInfo, onPayTax }: TrackingResul
   const isDelivered = data[0]?.icon === 'check';
   const isConfiscated = data[0]?.icon === 'alert';
   
+  // Define o valor dinamicamente para o texto de alerta
+  const taxAmount = code === 'BR00000001BR' ? "1,00" : "15,90";
+
   const originFullString = data[data.length - 1]?.location || 'São Paulo / SP';
   const originParts = originFullString.split(' - ');
   const originStr = originParts.length > 1 ? originParts[1] : originFullString;
@@ -101,7 +104,6 @@ export const TrackingResult = ({ code, data, destInfo, onPayTax }: TrackingResul
           </div>
         </div>
 
-        {/* ALERTA DE CONFISCO COM BOTÃO DE PAGAMENTO */}
         {isConfiscated && (
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
@@ -113,7 +115,7 @@ export const TrackingResult = ({ code, data, destInfo, onPayTax }: TrackingResul
             </div>
             <h4 className="text-2xl font-black text-red-700 mb-2">Aguardando Pagamento</h4>
             <p className="text-red-600 font-medium mb-6 max-w-lg mx-auto leading-relaxed">
-              Sua encomenda encontra-se retida na fiscalização aduaneira. Para que a entrega siga seu trajeto normalmente, é necessário efetuar o pagamento do <strong>despacho postal</strong> no valor de R$ 15,90.
+              Sua encomenda encontra-se retida na fiscalização aduaneira. Para que a entrega siga seu trajeto normalmente, é necessário efetuar o pagamento do <strong>despacho postal</strong> no valor de R$ {taxAmount}.
             </p>
             <Button 
               onClick={onPayTax} 
@@ -124,6 +126,7 @@ export const TrackingResult = ({ code, data, destInfo, onPayTax }: TrackingResul
           </motion.div>
         )}
 
+        {/* ... Restante do componente (idêntico ao anterior) */}
         <div className="my-10 bg-zinc-50/50 rounded-2xl p-6 border border-zinc-100">
           <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-zinc-400 mb-3 px-1">
             <span>Origem</span>

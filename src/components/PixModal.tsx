@@ -13,13 +13,13 @@ interface PixModalProps {
   onClose: () => void;
   pixCopiaECola: string;
   transactionId: string;
+  amount?: number;
   onSuccess: () => void;
 }
 
-export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, onSuccess }: PixModalProps) => {
+export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount = 15.90, onSuccess }: PixModalProps) => {
   const [copied, setCopied] = useState(false);
 
-  // Polling via Edge Function (Ignora o bloqueio RLS do Supabase)
   useEffect(() => {
     if (!isOpen || !transactionId) return;
 
@@ -80,7 +80,9 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, onSucc
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm font-medium text-zinc-500 mb-1 px-1">
                   <span>Valor:</span>
-                  <span className="text-lg font-black text-zinc-900">R$ 15,90</span>
+                  <span className="text-lg font-black text-zinc-900">
+                    R$ {amount.toFixed(2).replace('.', ',')}
+                  </span>
                 </div>
                 
                 <Button 

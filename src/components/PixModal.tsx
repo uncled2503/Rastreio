@@ -13,15 +13,16 @@ interface PixModalProps {
   onClose: () => void;
   pixCopiaECola: string;
   transactionId: string;
-  amount?: number;
+  amount: number;
+  title?: string;
   onSuccess: () => void;
 }
 
-export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount = 15.90, onSuccess }: PixModalProps) => {
+export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount, title = "Taxa de Despacho Postal", onSuccess }: PixModalProps) => {
   const [copied, setCopied] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const isChecking = useRef(false);
-  const MAX_ATTEMPTS = 300; // Aumentado para cobrir um tempo maior com intervalo menor
+  const MAX_ATTEMPTS = 300; 
 
   useEffect(() => {
     if (!isOpen || !transactionId || attempts >= MAX_ATTEMPTS) return;
@@ -49,12 +50,10 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount
       }
     };
 
-    // Primeira verificação imediata
     checkPayment();
-
     const interval = setInterval(checkPayment, 3000);
     return () => clearInterval(interval);
-  }, [isOpen, transactionId, onSuccess]); // Removido 'attempts' da dependência para evitar re-instanciar o timer a cada tentativa
+  }, [isOpen, transactionId, onSuccess]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(pixCopiaECola);
@@ -80,7 +79,7 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount
                 <X size={20} />
               </button>
               <ShieldAlert className="mx-auto mb-3" size={40} />
-              <h3 className="text-xl font-bold">Taxa de Despacho Postal</h3>
+              <h3 className="text-xl font-bold">{title}</h3>
               <p className="opacity-90 mt-1">Pague via PIX para liberar sua encomenda</p>
             </div>
 

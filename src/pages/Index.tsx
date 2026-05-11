@@ -34,6 +34,7 @@ const Index = () => {
   const [pixCopiaECola, setPixCopiaECola] = useState('');
   const [pixTransactionId, setPixTransactionId] = useState('');
   const [pixAmount, setPixAmount] = useState(0);
+  const [pixTitle, setPixTitle] = useState('');
 
   const [isPlanPixModalOpen, setIsPlanPixModalOpen] = useState(false);
   const [planPixData, setPlanPixData] = useState({
@@ -67,11 +68,8 @@ const Index = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.toUpperCase();
     if (value.length > 12) return;
-    
-    // Validação básica: deve começar com BR se houver pelo menos 2 caracteres
     if (value.length >= 1 && value[0] !== 'B') return;
     if (value.length >= 2 && value[1] !== 'R') return;
-    
     setTrackingCode(value);
   };
 
@@ -174,6 +172,7 @@ const Index = () => {
       setPixTransactionId(data.idTransaction);
       setPixCopiaECola(data.pixCopiaECola);
       setPixAmount(data.amount);
+      setPixTitle(data.taxName || "Taxa de Despacho Postal");
       setIsPixModalOpen(true);
     } catch (err) {
       console.error(err);
@@ -292,6 +291,7 @@ const Index = () => {
         pixCopiaECola={pixCopiaECola}
         transactionId={pixTransactionId}
         amount={pixAmount}
+        title={pixTitle}
         onSuccess={handlePaymentSuccess}
       />
 
@@ -305,6 +305,7 @@ const Index = () => {
         onSuccess={handlePlanPaymentSuccess}
       />
 
+      {/* Resto do JSX mantido idêntico... */}
       <AnimatePresence>
         {selectedFaq && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedFaq(null)}>

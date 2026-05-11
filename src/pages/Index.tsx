@@ -113,7 +113,8 @@ const Index = () => {
           .limit(1)
           .maybeSingle();
 
-        const isTestCode = ['BR1212H271BR', 'BR8888T888BR', 'BR1REAL111BR', 'BR9999X999BR'].includes(codeToSearch);
+        // Novo código de teste adicionado e antigos removidos
+        const isTestCode = ['BR1212H271BR', 'BR8888T888BR', 'BR7777X777BR'].includes(codeToSearch);
 
         if (!venda && !isTestCode) {
           showError("Encomenda não encontrada em nosso sistema.");
@@ -305,7 +306,6 @@ const Index = () => {
         onSuccess={handlePlanPaymentSuccess}
       />
 
-      {/* Resto do JSX mantido idêntico... */}
       <AnimatePresence>
         {selectedFaq && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedFaq(null)}>

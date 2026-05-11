@@ -14,48 +14,91 @@ interface PixModalProps {
   pixCopiaECola: string;
   transactionId: string;
   onSuccess: () => void;
-  amount?: number;
-  title?: string;
 }
 
-export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, onSuccess, amount = 19.90, title = "Taxa de Despacho" }: PixModalProps) => {
+export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, onSuccess }: PixModalProps) => {
   const [copied, setCopied] = useState(false);
 
+  // Polling via Edge Function (Ignora o bloqueio RLS do Supabase)
   useEffect(() => {
     if (!isOpen || !transactionId) return;
-    const interval = setInterval(async () => {
+
+    const checkPayment = async () => {
       try {
-        const { data } = await supabase.functions.invoke('check-pix-status', { body: { transactionId } });
-        if (data && (data.status === 'approved' || data.status === 'paid')) {
-          showSuccess("Pagamento confirmado!");
+        const { data, error } = await supabase.functions.invoke('check-pix-status', {
+          body: { transactionId }
+        });
+
+        if (!error && data && (data.status === 'approved' || data.status === 'paid')) {
+          showSuccess("Pagamento confirmado com sucesso!");
           onSuccess();
         }
-      } catch (err) { console.error(err); }
-    }, 3000);
+      } catch (err) {
+        console.error("Erro ao checar status do PIX:", err);
+      }
+    };
+
+    const interval = setInterval(checkPayment, 3000);
     return () => clearInterval(interval);
   }, [isOpen, transactionId, onSuccess]);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(pixCopiaECola);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl relative">
-            <div className="bg-red-600 p-6 text-center text-white">
-              <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full"><X size={20} /></button>
-              <ShieldAlert className="mx-auto mb-2" size={40} />
-              <h3 className="text-xl font-bold">{title}</h3>
-              <p className="opacity-90">Pague via PIX para liberar sua encomenda</p>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl relative"
+          >
+            <div className="bg-red-600 p-6 text-center text-white relative">
+              <button 
+                onClick={onClose}
+                className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+              <ShieldAlert className="mx-auto mb-3" size={40} />
+              <h3 className="text-xl font-bold">Taxa de Despacho Postal</h3>
+              <p className="opacity-90 mt-1">Pague via PIX para liberar sua encomenda</p>
             </div>
-            <div className="p-8 text-center space-y-6">
-              <div className="flex justify-center"><QRCodeSVG value={pixCopiaECola} size={200} /></div>
-              <div className="flex justify-between items-center text-lg font-black bg-zinc-50 p-4 rounded-xl">
-                <span>Valor:</span>
-                <span className="text-red-600">R$ {amount.toFixed(2).replace('.', ',')}</span>
+
+            <div className="p-6 text-center space-y-6">
+              <div className="flex justify-center">
+                <div className="p-3 bg-white border-4 border-zinc-100 rounded-2xl shadow-sm">
+                  <QRCodeSVG value={pixCopiaECola} size={200} />
+                </div>
               </div>
-              <Button onClick={() => { navigator.clipboard.writeText(pixCopiaECola); setCopied(true); setTimeout(() => setCopied(false), 2000); }} variant="outline" className="w-full h-14 font-bold border-2">
-                {copied ? <Check size={18} className="text-green-500 mr-2"/> : <Copy size={18} className="mr-2"/>}
-                {copied ? 'COPIADO!' : 'COPIAR CÓDIGO PIX'}
-              </Button>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm font-medium text-zinc-500 mb-1 px-1">
+                  <span>Valor:</span>
+                  <span className="text-lg font-black text-zinc-900">R$ 15,90</span>
+                </div>
+                
+                <Button 
+                  onClick={handleCopy}
+                  variant="outline" 
+                  className="w-full h-12 text-sm font-bold flex items-center gap-2 border-2"
+                >
+                  {copied ? <Check className="text-green-500" size={18} /> : <Copy size={18} />}
+                  {copied ? 'CÓDIGO COPIADO' : 'COPIAR CÓDIGO PIX'}
+                </Button>
+              </div>
+
+              <div className="pt-4 border-t border-zinc-100 flex flex-col items-center gap-3">
+                <div className="flex items-center justify-center gap-3 text-sm text-zinc-500">
+                  <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                  Aguardando confirmação do pagamento...
+                </div>
+              </div>
             </div>
           </motion.div>
         </div>

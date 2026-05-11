@@ -36,29 +36,13 @@ const Embed = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.toUpperCase();
-    const index = value.length - 1;
-    const char = value[index];
-
-    if (value.length < trackingCode.length) {
-      setTrackingCode(value);
-      return;
-    }
-
     if (value.length > 12) return;
+    
+    // Validação básica: deve começar com BR
+    if (value.length >= 1 && value[0] !== 'B') return;
+    if (value.length >= 2 && value[1] !== 'R') return;
 
-    const isDigit = (c: string) => /\d/.test(c);
-    const isAlpha = (c: string) => /[A-Z]/.test(c);
-
-    let isValid = true;
-    if (index === 0 && char !== 'B') isValid = false;
-    else if (index === 1 && char !== 'R') isValid = false;
-    else if (index >= 2 && index <= 5 && !isDigit(char)) isValid = false;
-    else if (index === 6 && !isAlpha(char)) isValid = false;
-    else if (index >= 7 && index <= 9 && !isDigit(char)) isValid = false;
-    else if (index === 10 && char !== 'B') isValid = false;
-    else if (index === 11 && char !== 'R') isValid = false;
-
-    if (isValid) setTrackingCode(value);
+    setTrackingCode(value);
   };
 
   const performSearch = async (codeToSearch: string) => {
@@ -77,55 +61,38 @@ const Embed = () => {
 
       const { data: lead } = await supabase
         .from('leads')
-        .select('cidade, estado, cep, endereco, numero, complemento, bairro, created_at')
+        .select('*')
         .eq('codigo_rastreio', codeToSearch)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (lead) {
-        if (lead.cidade) cidade = lead.cidade;
-        if (lead.estado) estado = lead.estado;
-        if (lead.cep) cep = lead.cep;
-        if (lead.endereco) endereco = lead.endereco;
-        if (lead.numero) numero = lead.numero;
-        if (lead.complemento) complemento = lead.complemento;
-        if (lead.bairro) bairro = lead.bairro;
-        if (lead.created_at) dataCriacao = lead.created_at;
+        cidade = lead.cidade || "";
+        estado = lead.estado || "";
+        cep = lead.cep || "";
+        endereco = lead.endereco || "";
+        numero = lead.numero || "";
+        complemento = lead.complemento || "";
+        bairro = lead.bairro || "";
+        dataCriacao = lead.created_at || dataCriacao;
       } else {
         const { data: venda } = await supabase
           .from('vendas')
-          .select('created_at, lead_id, cliente_nome')
+          .select('*')
           .eq('codigo_rastreio', codeToSearch)
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
 
-        if (!venda && codeToSearch !== 'BR1212H271BR' && codeToSearch !== 'BR8888T888BR') {
+        const isTestCode = ['BR1212H271BR', 'BR8888T888BR', 'BR1REAL111BR'].includes(codeToSearch);
+
+        if (!venda && !isTestCode) {
           showError("Encomenda não encontrada em nosso sistema.");
           return;
         }
 
         if (venda?.created_at) dataCriacao = venda.created_at;
-
-        if (venda?.lead_id) {
-          const { data: leadDaVenda } = await supabase
-            .from('leads')
-            .select('cidade, estado, cep, endereco, numero, complemento, bairro')
-            .eq('id', venda.lead_id)
-            .limit(1)
-            .maybeSingle();
-            
-          if (leadDaVenda) {
-            if (leadDaVenda.cidade) cidade = leadDaVenda.cidade;
-            if (leadDaVenda.estado) estado = leadDaVenda.estado;
-            if (leadDaVenda.cep) cep = leadDaVenda.cep;
-            if (leadDaVenda.endereco) endereco = leadDaVenda.endereco;
-            if (leadDaVenda.numero) numero = leadDaVenda.numero;
-            if (leadDaVenda.complemento) complemento = leadDaVenda.complemento;
-            if (leadDaVenda.bairro) bairro = leadDaVenda.bairro;
-          }
-        }
       }
 
       setDestInfo({ city: cidade, state: estado, cep, endereco, numero, complemento, bairro });
@@ -133,12 +100,9 @@ const Embed = () => {
       const { data: statusData } = await supabase.functions.invoke('check-pix-status', {
         body: { trackingCode: codeToSearch }
       });
-      const taxaJaPaga = statusData?.taxaPaga ?? false;
+      const paymentsCount = statusData?.paymentsCount ?? 0;
 
-      const finalCity = cidade || "Seu endereço";
-      const finalState = cidade ? estado : "";
-
-      const timeline = generateTimeline(codeToSearch, finalCity, finalState, bairro, dataCriacao, taxaJaPaga);
+      const timeline = generateTimeline(codeToSearch, cidade || "Seu endereço", estado || "", bairro || "", dataCriacao, paymentsCount);
       
       setEvents(timeline);
       setShowResult(true);

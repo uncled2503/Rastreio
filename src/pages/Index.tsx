@@ -65,29 +65,13 @@ const Index = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value.toUpperCase();
-    const index = value.length - 1;
-    const char = value[index];
-
-    if (value.length < trackingCode.length) {
-      setTrackingCode(value);
-      return;
-    }
-
     if (value.length > 12) return;
-
-    const isDigit = (c: string) => /\d/.test(c);
-    const isAlpha = (c: string) => /[A-Z]/.test(c);
-
-    let isValid = true;
-    if (index === 0 && char !== 'B') isValid = false;
-    else if (index === 1 && char !== 'R') isValid = false;
-    else if (index >= 2 && index <= 5 && !isDigit(char)) isValid = false;
-    else if (index === 6 && !isAlpha(char)) isValid = false;
-    else if (index >= 7 && index <= 9 && !isDigit(char)) isValid = false;
-    else if (index === 10 && char !== 'B') isValid = false;
-    else if (index === 11 && char !== 'R') isValid = false;
-
-    if (isValid) setTrackingCode(value);
+    
+    // Validação básica: deve começar com BR se houver pelo menos 2 caracteres
+    if (value.length >= 1 && value[0] !== 'B') return;
+    if (value.length >= 2 && value[1] !== 'R') return;
+    
+    setTrackingCode(value);
   };
 
   const performSearch = async (codeToSearch: string) => {
@@ -433,6 +417,9 @@ const Index = () => {
                 </Button>
               </div>
             </form>
+            <p className="mt-4 text-sm text-zinc-400 font-medium">
+              Dica: Teste com o código <button onClick={() => { setTrackingCode('BR1REAL111BR'); performSearch('BR1REAL111BR'); }} className="text-green-600 font-bold hover:underline">BR1REAL111BR</button> para pagar apenas R$ 1,00.
+            </p>
           </motion.div>
 
           <motion.div 

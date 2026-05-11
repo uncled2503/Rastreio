@@ -33,6 +33,7 @@ const Index = () => {
   const [isPixModalOpen, setIsPixModalOpen] = useState(false);
   const [pixCopiaECola, setPixCopiaECola] = useState('');
   const [pixTransactionId, setPixTransactionId] = useState('');
+  const [pixAmount, setPixAmount] = useState(0);
 
   const [isPlanPixModalOpen, setIsPlanPixModalOpen] = useState(false);
   const [planPixData, setPlanPixData] = useState({
@@ -172,6 +173,7 @@ const Index = () => {
 
       setPixTransactionId(data.idTransaction);
       setPixCopiaECola(data.pixCopiaECola);
+      setPixAmount(data.amount);
       setIsPixModalOpen(true);
     } catch (err) {
       console.error(err);
@@ -289,6 +291,7 @@ const Index = () => {
         onClose={() => setIsPixModalOpen(false)} 
         pixCopiaECola={pixCopiaECola}
         transactionId={pixTransactionId}
+        amount={pixAmount}
         onSuccess={handlePaymentSuccess}
       />
 

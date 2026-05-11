@@ -23,6 +23,7 @@ const Embed = () => {
   const [isPixModalOpen, setIsPixModalOpen] = useState(false);
   const [pixCopiaECola, setPixCopiaECola] = useState('');
   const [pixTransactionId, setPixTransactionId] = useState('');
+  const [pixAmount, setPixAmount] = useState(0);
 
   // Auto-busca se o código for passado na URL (ex: ?codigo=BR123456789BR)
   useEffect(() => {
@@ -138,6 +139,7 @@ const Embed = () => {
 
       setPixTransactionId(data.idTransaction);
       setPixCopiaECola(data.pixCopiaECola);
+      setPixAmount(data.amount);
       setIsPixModalOpen(true);
     } catch (err) {
       console.error(err);
@@ -159,6 +161,7 @@ const Embed = () => {
         onClose={() => setIsPixModalOpen(false)} 
         pixCopiaECola={pixCopiaECola}
         transactionId={pixTransactionId}
+        amount={pixAmount}
         onSuccess={handlePaymentSuccess}
       />
 

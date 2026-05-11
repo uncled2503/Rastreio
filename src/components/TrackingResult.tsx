@@ -19,7 +19,7 @@ export const TrackingResult = ({ code, data, destInfo, onPayTax }: TrackingResul
 
   const currentEvent = data[0];
   const isActionRequired = currentEvent.icon === 'alert';
-  const taxAmount = currentEvent.taxAmount || 15.90;
+  const taxAmount = currentEvent.taxAmount || 19.90;
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-3xl mx-auto px-4">
@@ -42,7 +42,7 @@ export const TrackingResult = ({ code, data, destInfo, onPayTax }: TrackingResul
             <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4"><ShieldAlert size={32} /></div>
             <h4 className="text-xl font-black text-red-700 mb-2">Aguardando Pagamento</h4>
             <p className="text-red-600 text-sm font-medium mb-6 leading-relaxed">
-              {taxAmount === 15.90 
+              {taxAmount === 19.90 
                 ? "Sua encomenda está retida em Curitiba para o pagamento do Despacho Postal. Efetue o pagamento para liberar o transporte."
                 : "Objeto chegou na cidade de destino, mas requer o pagamento da Taxa de Manuseio Logístico para sair para entrega."
               }

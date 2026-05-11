@@ -44,7 +44,7 @@ export function generateTimeline(
     icon: tax1Paid ? "shield" : "alert", 
     done: true,
     isTaxEvent: !tax1Paid,
-    taxAmount: 15.90
+    taxAmount: 19.90
   });
 
   // --- BLOCO 2: DO PAGAMENTO 1 ATÉ O 10º DIA ---

@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search, HelpCircle, X, Zap, CheckCircle } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AntiFraudModal } from '@/components/AntiFraudModal';
 import { TrackingResult } from '@/components/TrackingResult';
@@ -22,7 +21,7 @@ const Index = () => {
   const [isPixModalOpen, setIsPixModalOpen] = useState(false);
   const [pixCopiaECola, setPixCopiaECola] = useState('');
   const [pixTransactionId, setPixTransactionId] = useState('');
-  const [pixAmount, setPixAmount] = useState(15.90);
+  const [pixAmount, setPixAmount] = useState(19.90);
 
   const performSearch = async (codeToSearch: string) => {
     setIsSearching(true);

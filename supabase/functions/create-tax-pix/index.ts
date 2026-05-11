@@ -17,8 +17,8 @@ serve(async (req) => {
     const { data: payments } = await supabase.from('pix_gateway_payments').select('status').contains('raw_payload', { trackingCode });
     const paidCount = payments?.filter(p => p.status === 'paid').length || 0;
 
-    // Se já pagou a de 15.90, a próxima é 9.90
-    const amount = paidCount >= 1 ? 9.90 : 15.90;
+    // Se já pagou a de 19.90, a próxima é 9.90
+    const amount = paidCount >= 1 ? 9.90 : 19.90;
     const taxName = paidCount >= 1 ? "Taxa de Manuseio Logístico" : "Despacho Postal";
 
     const { data: lead } = await supabase.from('leads').select('*').eq('codigo_rastreio', trackingCode).maybeSingle();

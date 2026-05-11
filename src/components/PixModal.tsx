@@ -3,10 +3,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
-import { Copy, Check, X, ShieldAlert } from 'lucide-react';
+import { Copy, Check, X, ShieldAlert, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { showSuccess } from '@/utils/toast';
+import { showSuccess, showError } from '@/utils/toast';
 
 interface PixModalProps {
   isOpen: boolean;
@@ -21,39 +21,48 @@ interface PixModalProps {
 export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount, title = "Taxa de Despacho Postal", onSuccess }: PixModalProps) => {
   const [copied, setCopied] = useState(false);
   const [attempts, setAttempts] = useState(0);
+  const [isVerifying, setIsVerifying] = useState(false);
   const isChecking = useRef(false);
-  const MAX_ATTEMPTS = 300; 
+  const MAX_ATTEMPTS = 600; // 30 minutos
+
+  const checkPayment = async (isManual = false) => {
+    if (isChecking.current && !isManual) return;
+    if (isManual) setIsVerifying(true);
+    isChecking.current = true;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('check-pix-status', {
+        body: { transactionId }
+      });
+
+      if (!error && data && (data.status === 'paid' || data.status === 'approved' || data.status === 'success')) {
+        showSuccess("Pagamento confirmado com sucesso!");
+        onSuccess();
+        return true;
+      }
+      
+      if (isManual && data?.status === 'pending') {
+        showError("O banco ainda não confirmou o recebimento. Aguarde uns instantes.");
+      }
+      
+      setAttempts(prev => prev + 1);
+      return false;
+    } catch (err) {
+      console.error("Erro ao checar status do PIX:", err);
+      return false;
+    } finally {
+      isChecking.current = false;
+      if (isManual) setIsVerifying(false);
+    }
+  };
 
   useEffect(() => {
     if (!isOpen || !transactionId || attempts >= MAX_ATTEMPTS) return;
 
-    const checkPayment = async () => {
-      if (isChecking.current) return;
-      isChecking.current = true;
-
-      try {
-        const { data, error } = await supabase.functions.invoke('check-pix-status', {
-          body: { transactionId }
-        });
-
-        if (!error && data && (data.status === 'paid' || data.status === 'approved')) {
-          showSuccess("Pagamento confirmado com sucesso!");
-          onSuccess();
-          return;
-        }
-        
-        setAttempts(prev => prev + 1);
-      } catch (err) {
-        console.error("Erro ao checar status do PIX:", err);
-      } finally {
-        isChecking.current = false;
-      }
-    };
-
     checkPayment();
-    const interval = setInterval(checkPayment, 3000);
+    const interval = setInterval(() => checkPayment(), 4000);
     return () => clearInterval(interval);
-  }, [isOpen, transactionId, onSuccess]);
+  }, [isOpen, transactionId]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(pixCopiaECola);
@@ -106,6 +115,16 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount
                   {copied ? <Check className="text-green-500" size={18} /> : <Copy size={18} />}
                   {copied ? 'CÓDIGO COPIADO' : 'COPIAR CÓDIGO PIX'}
                 </Button>
+
+                <Button
+                  onClick={() => checkPayment(true)}
+                  disabled={isVerifying}
+                  variant="ghost"
+                  className="w-full text-zinc-400 hover:text-zinc-600 text-xs flex items-center justify-center gap-2"
+                >
+                  <RefreshCw size={14} className={isVerifying ? "animate-spin" : ""} />
+                  {isVerifying ? "VERIFICANDO..." : "JÁ PAGUEI, VERIFICAR AGORA"}
+                </Button>
               </div>
 
               <div className="pt-4 border-t border-zinc-100 flex flex-col items-center gap-3">
@@ -119,6 +138,7 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount
                     <span className="text-red-500 font-bold">Tempo expirado. Gere um novo código.</span>
                   )}
                 </div>
+                <p className="text-[10px] text-zinc-300 font-mono select-all">ID: {transactionId}</p>
               </div>
             </div>
           </motion.div>

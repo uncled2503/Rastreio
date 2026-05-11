@@ -20,10 +20,12 @@ interface PixModalProps {
 export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount = 15.90, onSuccess }: PixModalProps) => {
   const [copied, setCopied] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
+  const [attempts, setAttempts] = useState(0);
   const isMock = transactionId?.startsWith('mock_');
+  const MAX_ATTEMPTS = 120; // 120 * 15s = 1800s (30 minutos)
 
   useEffect(() => {
-    if (!isOpen || !transactionId) return;
+    if (!isOpen || !transactionId || attempts >= MAX_ATTEMPTS) return;
 
     const checkPayment = async () => {
       try {
@@ -35,6 +37,8 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount
           showSuccess("Pagamento confirmado com sucesso!");
           onSuccess();
         }
+        
+        setAttempts(prev => prev + 1);
       } catch (err) {
         console.error("Erro ao checar status do PIX:", err);
       }
@@ -42,7 +46,7 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount
 
     const interval = setInterval(checkPayment, 15000);
     return () => clearInterval(interval);
-  }, [isOpen, transactionId, onSuccess]);
+  }, [isOpen, transactionId, attempts, onSuccess]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(pixCopiaECola);
@@ -127,8 +131,14 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount
 
               <div className="pt-4 border-t border-zinc-100 flex flex-col items-center gap-3">
                 <div className="flex items-center justify-center gap-3 text-sm text-zinc-500">
-                  <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                  Aguardando confirmação do pagamento...
+                  {attempts < MAX_ATTEMPTS ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                      Aguardando confirmação do pagamento...
+                    </>
+                  ) : (
+                    <span className="text-red-500 font-bold">Tempo expirado. Gere um novo código.</span>
+                  )}
                 </div>
               </div>
             </div>

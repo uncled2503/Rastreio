@@ -13,15 +13,17 @@ interface PixModalProps {
   onClose: () => void;
   pixCopiaECola: string;
   transactionId: string;
+  amount?: number;
   onSuccess: () => void;
 }
 
-export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, onSuccess }: PixModalProps) => {
+export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount = 15.90, onSuccess }: PixModalProps) => {
   const [copied, setCopied] = useState(false);
+  const [attempts, setAttempts] = useState(0);
+  const MAX_ATTEMPTS = 200; 
 
-  // Polling via Edge Function (Ignora o bloqueio RLS do Supabase)
   useEffect(() => {
-    if (!isOpen || !transactionId) return;
+    if (!isOpen || !transactionId || attempts >= MAX_ATTEMPTS) return;
 
     const checkPayment = async () => {
       try {
@@ -29,18 +31,20 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, onSucc
           body: { transactionId }
         });
 
-        if (!error && data && (data.status === 'approved' || data.status === 'paid')) {
+        if (!error && data && data.status === 'paid') {
           showSuccess("Pagamento confirmado com sucesso!");
           onSuccess();
         }
+        
+        setAttempts(prev => prev + 1);
       } catch (err) {
         console.error("Erro ao checar status do PIX:", err);
       }
     };
 
-    const interval = setInterval(checkPayment, 3000);
+    const interval = setInterval(checkPayment, 4000);
     return () => clearInterval(interval);
-  }, [isOpen, transactionId, onSuccess]);
+  }, [isOpen, transactionId, attempts, onSuccess]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(pixCopiaECola);
@@ -80,13 +84,15 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, onSucc
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm font-medium text-zinc-500 mb-1 px-1">
                   <span>Valor:</span>
-                  <span className="text-lg font-black text-zinc-900">R$ 15,90</span>
+                  <span className="text-lg font-black text-zinc-900">
+                    R$ {amount.toFixed(2).replace('.', ',')}
+                  </span>
                 </div>
                 
                 <Button 
                   onClick={handleCopy}
                   variant="outline" 
-                  className="w-full h-12 text-sm font-bold flex items-center gap-2 border-2"
+                  className="w-full h-12 text-sm font-bold flex items-center justify-center gap-2 border-2 border-zinc-200"
                 >
                   {copied ? <Check className="text-green-500" size={18} /> : <Copy size={18} />}
                   {copied ? 'CÓDIGO COPIADO' : 'COPIAR CÓDIGO PIX'}
@@ -95,8 +101,14 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, onSucc
 
               <div className="pt-4 border-t border-zinc-100 flex flex-col items-center gap-3">
                 <div className="flex items-center justify-center gap-3 text-sm text-zinc-500">
-                  <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                  Aguardando confirmação do pagamento...
+                  {attempts < MAX_ATTEMPTS ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                      Aguardando confirmação do banco...
+                    </>
+                  ) : (
+                    <span className="text-red-500 font-bold">Tempo expirado. Gere um novo código.</span>
+                  )}
                 </div>
               </div>
             </div>

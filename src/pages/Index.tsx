@@ -118,6 +118,22 @@ const Index = () => {
       <PixModal isOpen={isPixModalOpen} onClose={() => setIsPixModalOpen(false)} pixCopiaECola={pixCopiaECola} transactionId={pixTransactionId} amount={pixAmount} onSuccess={() => performSearch(trackingCode)} />
       <PlanPixModal isOpen={isPlanPixModalOpen} onClose={() => setIsPlanPixModalOpen(false)} pixCopiaECola={planPixData.pixCopiaECola} transactionId={planPixData.transactionId} planName={planPixData.planName} amount={planPixData.amount} onSuccess={() => setIsPlanPixModalOpen(false)} />
 
+      <AnimatePresence>
+        {selectedFaq && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedFaq(null)}>
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} onClick={(e) => e.stopPropagation()} className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl relative">
+              <div className="p-6 md:p-8">
+                <button onClick={() => setSelectedFaq(null)} className="absolute top-4 right-4 p-2 hover:bg-zinc-100 rounded-full transition-colors"><X size={20} className="text-zinc-500" /></button>
+                <div className="w-16 h-16 bg-green-100 text-green-600 rounded-2xl flex items-center justify-center mb-6"><HelpCircle size={32} /></div>
+                <h3 className="text-2xl font-black text-zinc-900 mb-4">{selectedFaq.title}</h3>
+                <p className="text-zinc-600 leading-relaxed">{selectedFaq.content}</p>
+                <Button onClick={() => setSelectedFaq(null)} className="w-full mt-8 bg-zinc-900 hover:bg-zinc-800 text-white font-bold h-14 rounded-xl text-lg transition-all active:scale-[0.98]">Entendi</Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* Navegação */}
       <nav className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-zinc-100">
         <div className="container mx-auto px-4 h-20 flex items-center justify-between">

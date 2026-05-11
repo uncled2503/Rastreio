@@ -13,7 +13,9 @@ serve(async (req) => {
     const { trackingCode } = await req.json();
     if (!trackingCode) throw new Error("Tracking code is required");
 
-    const amount = (trackingCode === 'BR00000001BR' || trackingCode === 'BR9999K999BR' || trackingCode === 'BR1111S111BR') ? 1.00 : 15.90;
+    // Identifica se é um código de teste
+    const isTestCode = (trackingCode === 'BR00000001BR' || trackingCode === 'BR9999K999BR' || trackingCode === 'BR1111S111BR' || trackingCode === 'BR1212H271BR' || trackingCode === 'BR8888T888BR');
+    const amount = isTestCode ? 1.00 : 15.90;
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -54,7 +56,8 @@ serve(async (req) => {
       });
     };
 
-    if (!apiKey) return await generateMockPix();
+    // SE for código de teste OU não tiver API Key, gera Mock
+    if (isTestCode || !apiKey) return await generateMockPix();
 
     try {
       const payload = {

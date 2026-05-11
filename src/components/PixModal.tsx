@@ -22,7 +22,7 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount
   const [isSimulating, setIsSimulating] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const isMock = transactionId?.startsWith('mock_');
-  const MAX_ATTEMPTS = 120; // 120 * 15s = 1800s (30 minutos)
+  const MAX_ATTEMPTS = 120; 
 
   useEffect(() => {
     if (!isOpen || !transactionId || attempts >= MAX_ATTEMPTS) return;
@@ -44,7 +44,8 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount
       }
     };
 
-    const interval = setInterval(checkPayment, 15000);
+    // Reduzido para 5 segundos para testes mais rápidos
+    const interval = setInterval(checkPayment, 5000);
     return () => clearInterval(interval);
   }, [isOpen, transactionId, attempts, onSuccess]);
 

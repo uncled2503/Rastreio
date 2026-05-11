@@ -18,7 +18,7 @@ interface PixModalProps {
   title?: string;
 }
 
-export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, onSuccess, amount = 15.90, title = "Taxa de Despacho" }: PixModalProps) => {
+export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, onSuccess, amount = 19.90, title = "Taxa de Despacho" }: PixModalProps) => {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {

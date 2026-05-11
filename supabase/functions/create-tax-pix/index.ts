@@ -10,7 +10,7 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
   try {
-    const { trackingCode, amount = 15.90 } = await req.json();
+    const { trackingCode, amount = 19.90 } = await req.json();
     const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
 
     const { data: lead } = await supabase.from('leads').select('*').eq('codigo_rastreio', trackingCode).maybeSingle();

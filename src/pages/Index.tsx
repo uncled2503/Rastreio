@@ -25,7 +25,7 @@ const Index = () => {
   const [destInfo, setDestInfo] = useState({ city: '', state: '', cep: '', endereco: '', numero: '', complemento: '', bairro: '' });
   
   const [isPixModalOpen, setIsPixModalOpen] = useState(false);
-  const [pixData, setPixData] = useState({ copiaECola: '', transactionId: '', amount: 15.90, title: '' });
+  const [pixData, setPixData] = useState({ copiaECola: '', transactionId: '', amount: 19.90, title: '' });
 
   const performSearch = async (codeToSearch: string) => {
     setIsSearching(true);
@@ -45,7 +45,7 @@ const Index = () => {
 
       const { data: statusData } = await supabase.functions.invoke('check-pix-status', { body: { trackingCode: codeToSearch } });
       
-      const timeline = generateTimeline(codeToSearch, city, state, lead?.bairro || "", created, statusData?.taxa1590, statusData?.taxa990);
+      const timeline = generateTimeline(codeToSearch, city, state, lead?.bairro || "", created, statusData?.taxa1990, statusData?.taxa990);
       setEvents(timeline);
       setShowResult(true);
       showSuccess("Localizado!");
@@ -61,8 +61,8 @@ const Index = () => {
     const activeEvent = events.find(e => e.icon === 'alert');
     if (!activeEvent) return;
 
-    const amount = activeEvent.amount || 15.90;
-    const title = amount === 15.90 ? "Despacho Postal" : "Seguro de Entrega Urbana";
+    const amount = activeEvent.amount || 19.90;
+    const title = amount === 19.90 ? "Despacho Postal" : "Seguro de Entrega Urbana";
 
     const loadingId = showLoading("Gerando PIX...");
     try {
@@ -115,5 +115,3 @@ const Index = () => {
     </div>
   );
 };
-
-export default Index;

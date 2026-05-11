@@ -28,7 +28,7 @@ serve(async (req) => {
       ) ?? false;
       
       return new Response(JSON.stringify({ 
-        taxa1590: checkPaid(15.90),
+        taxa1990: checkPaid(19.90),
         taxa990: checkPaid(9.90)
       }), { headers: corsHeaders });
     }

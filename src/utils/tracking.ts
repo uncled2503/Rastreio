@@ -11,7 +11,7 @@ export type TrackingEvent = {
 
 const CIDADES = ["Curitiba", "Joinville", "Londrina", "Maringá", "Blumenau", "Campinas", "Santos"];
 
-export function generateTimeline(code: string, destCity: string, destState: string, destBairro: string, startDateIso: string, taxa1590: boolean = false, taxa990: boolean = false): TrackingEvent[] {
+export function generateTimeline(code: string, destCity: string, destState: string, destBairro: string, startDateIso: string, taxa1990: boolean = false, taxa990: boolean = false): TrackingEvent[] {
   const now = new Date();
   const start = new Date(startDateIso);
   const addDays = (date: Date, d: number, h: number) => {
@@ -30,19 +30,19 @@ export function generateTimeline(code: string, destCity: string, destState: stri
   let currentDate = addDays(start, 1, 4);
   events.push({ id: "ev1", date: currentDate.toISOString(), status: "Objeto encaminhado para unidade de tratamento", location: "CTE São Paulo / SP", icon: "truck", done: true });
 
-  // PRIMEIRA TAXA (15,90)
+  // PRIMEIRA TAXA (19,90)
   currentDate = addDays(currentDate, 2, 2);
   events.push({ 
     id: "ev_tax1", 
     date: currentDate.toISOString(), 
-    status: taxa1590 ? "Pagamento confirmado: Objeto liberado pela fiscalização" : "Aguardando pagamento: Objeto retido na fiscalização aduaneira", 
+    status: taxa1990 ? "Pagamento confirmado: Objeto liberado pela fiscalização" : "Aguardando pagamento: Objeto retido na fiscalização aduaneira", 
     location: "Centro de Logística Internacional - Curitiba / PR", 
-    icon: taxa1590 ? "shield" : "alert", 
+    icon: taxa1990 ? "shield" : "alert", 
     done: true,
-    amount: 15.90
+    amount: 19.90
   });
 
-  if (!taxa1590) return events.reverse();
+  if (!taxa1990) return events.reverse();
 
   // Continua após Taxa 1
   currentDate = addDays(currentDate, 1, 5);

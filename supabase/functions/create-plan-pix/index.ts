@@ -18,7 +18,8 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const apiKey = Deno.env.get('ROYALBANKING_API_KEY');
+    // Usando a nova API KEY 2 configurada
+    const apiKey = Deno.env.get('ROYALBANKING_API_KEY2') || Deno.env.get('ROYALBANKING_API_KEY');
 
     const generateMockPix = async () => {
       const mockId = "mock_plan_" + Date.now();
@@ -48,7 +49,7 @@ serve(async (req) => {
           "telefone": "11999999999",
           "email": "assinante@email.com"
         },
-        "callbackUrl": `https://ulrigywayovxuyiktnlr.supabase.co/functions/v1/royal-banking-webhook?origin=rastrear_oficial`
+        "callbackUrl": `https://ulrigywayovxuyiktnlr.supabase.co/functions/v1/royal-banking-webhook`
       };
 
       const response = await fetch("https://api.royalbanking.com.br/v1/gateway/", {

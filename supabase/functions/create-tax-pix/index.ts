@@ -23,7 +23,8 @@ serve(async (req) => {
     const taxName = paidCount >= 1 ? "Taxa de Manuseio Logístico" : "Despacho Postal";
     const { data: lead } = await supabase.from('leads').select('*').eq('codigo_rastreio', trackingCode).maybeSingle();
     
-    const apiKey = Deno.env.get('ROYALBANKING_API_KEY');
+    // Usando a nova API KEY 2 configurada
+    const apiKey = Deno.env.get('ROYALBANKING_API_KEY2') || Deno.env.get('ROYALBANKING_API_KEY');
     const callbackUrl = "https://ulrigywayovxuyiktnlr.supabase.co/functions/v1/royal-banking-webhook";
 
     const generateMockPix = async () => {

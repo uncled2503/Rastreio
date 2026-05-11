@@ -135,27 +135,10 @@ const Index = () => {
 
       setPixTransactionId(data.idTransaction);
       setPixCopiaECola(data.pixCopiaECola);
-      setPixAmount(data.amount); // Atualiza o valor dinâmico aqui
+      setPixAmount(data.amount);
       setIsPixModalOpen(true);
     } catch (err) {
       showError("Não foi possível gerar o código PIX.");
-    } finally {
-      dismissToast(loadingId);
-    }
-  };
-
-  const handleBuyPlan = async (planName: string, amount: number) => {
-    if (amount === 0) return;
-    const loadingId = showLoading(`Gerando PIX para o plano ${planName}...`);
-    try {
-      const { data, error } = await supabase.functions.invoke('create-plan-pix', {
-        body: { planName, amount }
-      });
-      if (error || data.error) throw new Error(data.error);
-      setPlanPixData({ pixCopiaECola: data.pixCopiaECola, transactionId: data.idTransaction, planName, amount });
-      setIsPlanPixModalOpen(true);
-    } catch (err) {
-      showError("Erro ao gerar a cobrança do plano.");
     } finally {
       dismissToast(loadingId);
     }
@@ -166,21 +149,6 @@ const Index = () => {
     performSearch(trackingCode);
   };
 
-  const handlePlanPaymentSuccess = () => setIsPlanPixModalOpen(false);
-
-  const carriers = [
-    { name: 'Correios', logo: correiosLogo, scale: "scale-100" },
-    { name: 'Jadlog', logo: jadlogLogo, scale: "scale-100" },
-    { name: 'Loggi', logo: loggiLogo, scale: "scale-100" },
-    { name: 'Total Express', logo: totalExpressLogo, scale: "scale-100" },
-  ];
-
-  const plans = [
-    { name: "Gratuito", price: "R$ 0", amount: 0, features: ["Até 5 rastreios ativos", "Histórico de 30 dias", "Notificações básicas"], button: "Começar Agora", highlight: false },
-    { name: "Pro", price: "R$ 19,90", period: "/mês", amount: 19.90, features: ["Rastreios ilimitados", "Histórico Vitalício", "Alertas via WhatsApp"], button: "Assinar Pro", highlight: true },
-    { name: "Trimestral", price: "R$ 49,90", period: "/trim", amount: 49.90, features: ["Tudo do plano Pro", "Economia de R$ 9,80", "Suporte prioritário"], button: "Assinar Trimestral", highlight: false }
-  ];
-
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-zinc-900 overflow-x-hidden font-sans scroll-smooth">
       <AntiFraudModal />
@@ -190,7 +158,7 @@ const Index = () => {
         onClose={() => setIsPixModalOpen(false)} 
         pixCopiaECola={pixCopiaECola}
         transactionId={pixTransactionId}
-        amount={pixAmount} // Passa o valor dinâmico
+        amount={pixAmount}
         onSuccess={handlePaymentSuccess}
       />
 
@@ -201,7 +169,7 @@ const Index = () => {
         transactionId={planPixData.transactionId}
         planName={planPixData.planName}
         amount={planPixData.amount}
-        onSuccess={handlePlanPaymentSuccess}
+        onSuccess={() => setIsPlanPixModalOpen(false)}
       />
 
       <AnimatePresence>

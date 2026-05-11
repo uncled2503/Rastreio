@@ -16,7 +16,7 @@ serve(async (req) => {
     const { data: payments } = await supabase.from('pix_gateway_payments').select('status').contains('raw_payload', { trackingCode });
     const paidCount = payments?.filter(p => p.status === 'paid').length || 0;
 
-    const isOneRealTest = trackingCode === 'BR1REAL111BR';
+    const isOneRealTest = trackingCode === 'BR1REAL111BR' || trackingCode === 'BR9999X999BR';
     let amount = paidCount >= 1 ? 9.90 : 19.90;
     if (isOneRealTest && paidCount === 0) amount = 1.00;
 

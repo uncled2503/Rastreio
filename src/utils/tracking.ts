@@ -28,8 +28,8 @@ export function generateTimeline(
   const events: TrackingEvent[] = [];
   const destStr = destState ? `${destCity} / ${destState}` : destCity;
   
-  // Customização para o código de teste de 1 Real
-  const isOneRealTest = code === 'BR1REAL111BR';
+  // Customização para os códigos de teste de 1 Real
+  const isOneRealTest = code === 'BR1REAL111BR' || code === 'BR9999X999BR';
   const firstTaxAmount = isOneRealTest ? 1.00 : 19.90;
   
   // --- BLOCO 1: INÍCIO ATÉ O 7º DIA ---

@@ -7,21 +7,19 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // A documentação do Royal Banking costuma exigir o retorno do texto "200"
+  // Resposta padrão para pre-flight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const body = await req.json();
-    console.log("[royal-banking-webhook] Payload recebido:", JSON.stringify(body));
+    const payload = await req.json();
+    console.log("[royal-banking-webhook] Webhook recebido:", JSON.stringify(payload));
 
-    // Extração flexível do ID da transação
-    // O gateway pode enviar em 'idTransaction', 'externalReference' ou 'reference'
-    const transactionId = String(body.idTransaction || body.externalReference || body.reference || '');
-    const status = String(body.status || '').toLowerCase();
-
-    console.log(`[royal-banking-webhook] Processando Transação: ${transactionId} | Status: ${status}`);
+    // A documentação cita idTransaction no JSON mas externalReference no texto.
+    // Verificamos ambos para garantir a captura do ID único.
+    const transactionId = String(payload.idTransaction || payload.externalReference || '');
+    const status = String(payload.status || '');
 
     if (transactionId) {
       const supabase = createClient(
@@ -29,49 +27,52 @@ serve(async (req) => {
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
       );
 
-      // Mapeamento de status expandido
-      // paid, approved, success -> Sucesso
-      // failed, canceled, error -> Falha
+      // Mapeamento baseado no resumo de estados da documentação:
+      // Cash In Pago: 'paid'
+      // Cash Out Pago: 'SaquePago'
+      // Cash Out Falhou: 'SaqueFalhou'
       
       let finalStatus = 'pending';
-      if (['paid', 'approved', 'success', 'saquepago'].includes(status)) {
+      
+      if (status === 'paid' || status === 'SaquePago') {
         finalStatus = 'paid';
-      } else if (['failed', 'canceled', 'error', 'saquefalhou'].includes(status)) {
+      } else if (status === 'SaqueFalhou') {
         finalStatus = 'failed';
       }
 
       if (finalStatus !== 'pending') {
-        const { data, error } = await supabase
+        console.log(`[royal-banking-webhook] Atualizando transação ${transactionId} para ${finalStatus}`);
+        
+        const { error } = await supabase
           .from('pix_gateway_payments')
           .update({ 
             status: finalStatus,
             updated_at: new Date().toISOString()
           })
-          .eq('id_transaction', transactionId)
-          .select();
+          .eq('id_transaction', transactionId);
 
         if (error) {
-          console.error(`[royal-banking-webhook] Erro ao atualizar banco para ID ${transactionId}:`, error);
-        } else if (data && data.length > 0) {
-          console.log(`[royal-banking-webhook] Transação ${transactionId} atualizada com sucesso para: ${finalStatus}`);
-        } else {
-          console.warn(`[royal-banking-webhook] Transação ${transactionId} não encontrada no banco para atualizar.`);
+          console.error(`[royal-banking-webhook] Erro ao atualizar DB:`, error);
         }
       }
     } else {
-      console.error("[royal-banking-webhook] ID da transação não encontrado no payload.");
+      console.warn("[royal-banking-webhook] ID da transação não identificado no payload.");
     }
 
-    // Retorno padrão exigido pelo gateway
-    return new Response("200", {
+    // A documentação exige retorno HTTP 200 com o corpo json_encode(200)
+    // Em Deno/TS, JSON.stringify(200) resulta na string "200"
+    return new Response(JSON.stringify(200), {
       status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json' 
+      }
     });
 
   } catch (err) {
-    console.error("[royal-banking-webhook] Erro crítico no processamento:", err);
-    // Retornamos 200 mesmo em erro para o gateway parar de tentar, mas logamos o erro
-    return new Response("200", {
+    console.error("[royal-banking-webhook] Erro crítico:", err.message);
+    // Mesmo em erro de processamento interno, respondemos 200 para evitar retentativas infinitas do gateway se o payload for inválido
+    return new Response(JSON.stringify(200), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

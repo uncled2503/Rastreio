@@ -7,61 +7,34 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
   try {
     const body = await req.json();
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
 
-    // Consulta para o Polling do Modal (Verifica uma transação específica)
     if (body.transactionId) {
-      const { data } = await supabase
-        .from('pix_gateway_payments')
-        .select('status')
-        .eq('id_transaction', String(body.transactionId))
-        .maybeSingle();
-        
-      return new Response(JSON.stringify({ status: data?.status || 'pending' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      const { data } = await supabase.from('pix_gateway_payments').select('status').eq('id_transaction', String(body.transactionId)).maybeSingle();
+      return new Response(JSON.stringify({ status: data?.status || 'pending' }), { headers: corsHeaders });
     }
 
-    // Consulta para a Busca de Rastreio (Verifica se qualquer transação deste código foi paga)
     if (body.trackingCode) {
-      // Usando filtro de texto no JSON para maior compatibilidade e precisão
-      const { data, error } = await supabase
-        .from('pix_gateway_payments')
-        .select('status, raw_payload')
-        .filter('raw_payload->>trackingCode', 'eq', body.trackingCode);
-
+      const { data, error } = await supabase.from('pix_gateway_payments').select('status, raw_payload').filter('raw_payload->>trackingCode', 'eq', body.trackingCode);
       if (error) throw error;
         
-      const taxaPaga = data?.some(p => 
-        p.status === 'approved' || 
-        p.status === 'paid' || 
-        p.status === 'success' || 
-        p.status === 'concluded'
+      const checkPaid = (amount: number) => data?.some(p => 
+        (p.status === 'approved' || p.status === 'paid') && 
+        Math.abs((p.raw_payload as any).amount - amount) < 0.1
       ) ?? false;
       
-      return new Response(JSON.stringify({ taxaPaga }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(JSON.stringify({ 
+        taxa1590: checkPaid(15.90),
+        taxa990: checkPaid(9.90)
+      }), { headers: corsHeaders });
     }
 
-    return new Response(JSON.stringify({ error: "Missing parameters" }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400
-    });
-
+    return new Response(JSON.stringify({ error: "Missing parameters" }), { headers: corsHeaders, status: 400 });
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
+    return new Response(JSON.stringify({ error: error.message }), { headers: corsHeaders, status: 500 });
   }
 })

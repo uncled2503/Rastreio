@@ -55,7 +55,7 @@ export function generateTimeline(code: string, destCity: string, destState: stri
 
     if (taxaPaga) {
       const now = new Date();
-      mockEvents.push({ id: 'ev_tax_paid', date: now.toISOString(), status: "Objeto encaminhado para entrega", location: "Unidade de Tratamento - Curitiba / PR", destination: `CDD ${destCity} / ${destState}`, icon: "check", done: true });
+      mockEvents.push({ id: 'ev_tax_paid', date: now.toISOString(), status: "Objeto encaminhado para entrega", location: "Unidade de Tratamento - Curitiba / PR", destination: `${destCity} / ${destState}`, icon: "check", done: true });
     }
 
     return mockEvents.filter(e => e.done).reverse();
@@ -63,8 +63,9 @@ export function generateTimeline(code: string, destCity: string, destState: stri
 
   // LÓGICA DINÂMICA PARA LEADS REAIS
   let seedValue = 0;
-  for (let i = 0; i < code.length; i++) seedValue = (Math.imul(31, seedValue) + code.charCodeAt(i)) | <dyad-write path="src/utils/tracking.ts" description="Continuando a implementação da lógica dinâmica de geração de timeline.">
-  seedValue = (Math.imul(31, seedValue) + code.charCodeAt(i)) | 0;
+  for (let i = 0; i < code.length; i++) {
+    seedValue = (Math.imul(31, seedValue) + code.charCodeAt(i)) | 0;
+  }
   
   const rnd = () => {
     seedValue = (seedValue + 0x6D2B79F5) | 0;

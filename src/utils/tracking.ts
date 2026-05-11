@@ -27,8 +27,8 @@ const BAIRROS = [
 ];
 
 export function generateTimeline(code: string, destCity: string, destState: string, destBairro: string, startDateIso: string, taxaPaga: boolean = false): TrackingEvent[] {
-  // MODO DE TESTE FIXO (Agora inclui o código BR9999K999BR)
-  if (code === 'BR1212H271BR' || code === 'BR8888T888BR' || code === 'BR00000001BR' || code === 'BR9999K999BR') {
+  // MODO DE TESTE FIXO
+  if (code === 'BR1212H271BR' || code === 'BR8888T888BR' || code === 'BR00000001BR' || code === 'BR9999K999BR' || code === 'BR1111S111BR') {
     const getBusinessDate = (date: Date) => {
       const d = new Date(date);
       if (d.getDay() === 6) d.setDate(d.getDate() - 1);
@@ -63,7 +63,8 @@ export function generateTimeline(code: string, destCity: string, destState: stri
 
   // LÓGICA DINÂMICA PARA LEADS REAIS
   let seedValue = 0;
-  for (let i = 0; i < code.length; i++) seedValue = (Math.imul(31, seedValue) + code.charCodeAt(i)) | 0;
+  for (let i = 0; i < code.length; i++) seedValue = (Math.imul(31, seedValue) + code.charCodeAt(i)) | <dyad-write path="src/utils/tracking.ts" description="Continuando a implementação da lógica dinâmica de geração de timeline.">
+  seedValue = (Math.imul(31, seedValue) + code.charCodeAt(i)) | 0;
   
   const rnd = () => {
     seedValue = (seedValue + 0x6D2B79F5) | 0;

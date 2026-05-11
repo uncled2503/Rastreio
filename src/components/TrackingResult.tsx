@@ -63,8 +63,7 @@ export const TrackingResult = ({ code, data, destInfo, onPayTax }: TrackingResul
   const isDelivered = data[0]?.icon === 'check';
   const isConfiscated = data[0]?.icon === 'alert';
   
-  // Define o valor dinamicamente para o texto de alerta
-  const isSpecialCode = code === 'BR00000001BR' || code === 'BR9999K999BR';
+  const isSpecialCode = code === 'BR00000001BR' || code === 'BR9999K999BR' || code === 'BR1111S111BR';
   const taxAmount = isSpecialCode ? "1,00" : "15,90";
 
   const originFullString = data[data.length - 1]?.location || 'São Paulo / SP';
@@ -147,7 +146,7 @@ export const TrackingResult = ({ code, data, destInfo, onPayTax }: TrackingResul
                />
             </div>
             
-            <div className={`w-12 h-12 shrink-0 rounded-full flex items-center justify-center z-10 border-4 border-white transition-colors duration-500 ${isDelivered ? 'bg-green-100 text-green-600' : 'bg-zinc-100 text-zinc-400'}`}>
+            <div className={`w-12 h-12 shrink-0 rounded-full flex items-center justify-center z-10 border-4 border-white transition-colors duration-500 ${isDelivered ? 'bg-green-100 text-green-600' : originStr.includes('Correios') ? 'bg-zinc-100 text-zinc-400' : 'bg-zinc-100 text-zinc-400'}`}>
               <MapPin size={20} />
             </div>
 

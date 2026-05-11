@@ -18,17 +18,36 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Consulta para o Polling do Modal (Verifica uma transação específica)
+    // Consulta para o Polling do Modal
     if (body.transactionId) {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('pix_gateway_payments')
-        .select('status')
+        .select('status, created_at')
         .eq('id_transaction', body.transactionId)
         .maybeSingle();
-        
-      return new Response(JSON.stringify({ status: data?.status || 'pending' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+
+      if (data) {
+        // LÓGICA DE AUTO-APROVAÇÃO PARA MOCK (Testes)
+        // Se for um mock e tiver passado mais de 5 segundos, aprovamos automaticamente
+        const isMock = String(body.transactionId).startsWith('mock_');
+        const secondsSinceCreation = (new Date().getTime() - new Date(data.created_at).getTime()) / 1000;
+
+        if (isMock && data.status === 'pending' && secondsSinceCreation > 5) {
+          console.log(`[check-pix-status] Auto-aprovando mock: ${body.transactionId}`);
+          await supabase
+            .from('pix_gateway_payments')
+            .update({ status: 'approved' })
+            .eq('id_transaction', body.transactionId);
+          
+          return new Response(JSON.stringify({ status: 'approved' }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        return new Response(JSON.stringify({ status: data.status }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     // Consulta para a Busca de Rastreio (Verifica se qualquer transação deste código foi paga)
@@ -51,6 +70,7 @@ serve(async (req) => {
     });
 
   } catch (error: any) {
+    console.error("[check-pix-status] Error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,

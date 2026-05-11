@@ -31,19 +31,17 @@ export function generateTimeline(code: string, destCity: string, destState: stri
   // MODO DE TESTE FIXO PARA OS CÓDIGOS DE TESTE
   // ============================================================================
   if (code === 'BR1212H271BR' || code === 'BR8888T888BR') {
-    // Pegar o momento atual, mas garantir que não é fds e está em horário comercial
     const getBusinessDate = (date: Date) => {
       const d = new Date(date);
-      if (d.getDay() === 6) d.setDate(d.getDate() - 1); // Sábado -> Sexta
-      if (d.getDay() === 0) d.setDate(d.getDate() - 2); // Domingo -> Sexta
+      if (d.getDay() === 6) d.setDate(d.getDate() - 1);
+      if (d.getDay() === 0) d.setDate(d.getDate() - 2);
       const h = d.getHours();
-      if (h < 8 || h >= 18) d.setHours(14); // Padrão seguro para eventos
+      if (h < 8 || h >= 18) d.setHours(14);
       return d;
     };
 
     const base = getBusinessDate(new Date());
 
-    // Retorna N dias úteis para TRÁS
     const d = (daysAgo: number) => {
       let date = new Date(base);
       let count = 0;
@@ -51,19 +49,7 @@ export function generateTimeline(code: string, destCity: string, destState: stri
         date.setDate(date.getDate() - 1);
         if (date.getDay() !== 0 && date.getDay() !== 6) count++;
       }
-      date.setHours(9 + (count % 8), 15 + (count % 40)); // Aleatório determinístico (09h as 17h)
-      return date.toISOString();
-    };
-
-    // Retorna N dias úteis para FRENTE
-    const dFut = (daysAhead: number) => {
-      let date = new Date(base);
-      let count = 0;
-      while (count < daysAhead) {
-        date.setDate(date.getDate() + 1);
-        if (date.getDay() !== 0 && date.getDay() !== 6) count++;
-      }
-      date.setHours(10 + (count % 7), 20 + (count % 30)); // 10h as 17h
+      date.setHours(9 + (count % 8), 15 + (count % 40));
       return date.toISOString();
     };
 
@@ -74,19 +60,20 @@ export function generateTimeline(code: string, destCity: string, destState: stri
       { id: 'ev3', date: d(5), status: "Objeto chegou na unidade", location: "CTE São Paulo - São Paulo / SP", icon: "truck", done: true },
       { id: 'ev4', date: d(4), status: "Objeto encaminhado", location: "CTE São Paulo - São Paulo / SP", destination: "CTE Curitiba / PR", icon: "truck", done: true },
       { id: 'ev5', date: d(2), status: "Objeto chegou na unidade", location: "CTE Curitiba / PR", icon: "truck", done: true },
-      { id: 'ev_tax', date: d(1), status: taxaPaga ? "Pagamento confirmado: Objeto liberado pela fiscalização aduaneira" : "Aguardando pagamento: Objeto retido na fiscalização aduaneira", location: "Centro de Fiscalização - Curitiba / PR", icon: taxaPaga ? "shield" : "alert", done: true },
+      { id: 'ev_tax', date: taxaPaga ? new Date().toISOString() : d(1), status: taxaPaga ? "Pagamento confirmado: Objeto liberado pela fiscalização aduaneira" : "Aguardando pagamento: Objeto retido na fiscalização aduaneira", location: "Centro de Fiscalização - Curitiba / PR", icon: taxaPaga ? "shield" : "alert", done: true },
     ];
 
     if (taxaPaga) {
-      mockEvents.push({ id: 'ev_tax_paid', date: d(0), status: "Objeto encaminhado para entrega", location: "Unidade de Tratamento - Curitiba / PR", destination: `CDD ${destCity} / ${destState}`, icon: "check", done: true });
-      mockEvents.push({ id: 'ev6', date: dFut(2), status: "Objeto encaminhado", location: "CTE Curitiba / PR", destination: `CDD ${destCity} / ${destState}`, icon: "truck", done: false });
+      // Evento de encaminhamento logo após a confirmação (1 min depois)
+      const afterPay = new Date();
+      afterPay.setMinutes(afterPay.getMinutes() + 1);
+      mockEvents.push({ id: 'ev_tax_paid', date: afterPay.toISOString(), status: "Objeto encaminhado para entrega", location: "Unidade de Tratamento - Curitiba / PR", destination: `CDD ${destCity} / ${destState}`, icon: "check", done: true });
     }
 
     return mockEvents.filter(e => e.done).reverse();
   }
   // ============================================================================
 
-  // Sistema Dinâmico de Linha do Tempo
   let seedValue = 0;
   for (let i = 0; i < code.length; i++) {
     seedValue = (Math.imul(31, seedValue) + code.charCodeAt(i)) | 0;
@@ -106,50 +93,35 @@ export function generateTimeline(code: string, destCity: string, destState: stri
   const franquia = FRANQUIAS[Math.floor(rnd() * FRANQUIAS.length)];
   const bairro = destBairro || BAIRROS[Math.floor(rnd() * BAIRROS.length)];
 
-  // Função central para adicionar tempo respeitando dias úteis e horário comercial (08:00 - 18:00)
   const addDays = (date: Date, days: number, hours: number) => {
     const d = new Date(date);
     let added = 0;
-    
-    // Avança os dias pulando sábado (6) e domingo (0)
     while (added < days) {
       d.setDate(d.getDate() + 1);
-      if (d.getDay() !== 0 && d.getDay() !== 6) {
-        added++;
-      }
+      if (d.getDay() !== 0 && d.getDay() !== 6) added++;
     }
-    
     d.setHours(d.getHours() + hours);
-    
-    // Se, após somar horas, a data cair num fim de semana, avança pra segunda-feira
     while (d.getDay() === 0 || d.getDay() === 6) {
       d.setDate(d.getDate() + 1);
-      d.setHours(8); // Se foi empurrado pro próx dia útil, reseta para manhã
+      d.setHours(8);
     }
-    
-    // Prende no horário comercial
     const h = d.getHours();
     if (h < 8) d.setHours(8 + Math.floor(rnd() * 3));
-    if (h >= 18) d.setHours(14 + Math.floor(rnd() * 3)); // Entre 14h e 17h
-    
+    if (h >= 18) d.setHours(14 + Math.floor(rnd() * 3));
     return d;
   };
 
   const destStr = destState ? `${destCity} / ${destState}` : destCity;
-
   const events: TrackingEvent[] = [];
   
   events.push({ id: "ev0", date: start.toISOString(), status: "Código de rastreio cadastrado, aguardando postagem", location: `ACF ${franquia} - São Paulo / SP`, icon: "package", done: true });
 
   let postDate = new Date(start);
   postDate.setDate(postDate.getDate() + 1);
-  while (postDate.getDay() === 0 || postDate.getDay() === 6) { 
-    postDate.setDate(postDate.getDate() + 1);
-  }
+  while (postDate.getDay() === 0 || postDate.getDay() === 6) postDate.setDate(postDate.getDate() + 1);
   postDate.setHours(8 + Math.floor(rnd() * 4), Math.floor(rnd() * 60), 0);
 
   let currentDate = new Date(postDate);
-
   events.push({ id: "ev1", date: currentDate.toISOString(), status: "Objeto postado", location: `ACF ${franquia} - São Paulo / SP`, icon: "package", done: currentDate <= now });
 
   currentDate = addDays(currentDate, 0, Math.floor(rnd() * 4) + 1);
@@ -167,38 +139,44 @@ export function generateTimeline(code: string, destCity: string, destState: stri
   currentDate = addDays(currentDate, 0, Math.floor(rnd() * 4) + 2);
   const taxDate = new Date(currentDate);
   
+  // Se a taxa foi paga, o evento de imposto assume a data ATUAL para garantir que apareça como concluído
+  const displayTaxDate = taxaPaga ? new Date().toISOString() : taxDate.toISOString();
+
   events.push({ 
     id: "ev_tax", 
-    date: taxDate.toISOString(), 
+    date: displayTaxDate, 
     status: taxaPaga ? "Pagamento confirmado: Objeto liberado pela fiscalização aduaneira" : "Aguardando pagamento: Objeto retido na fiscalização aduaneira", 
     location: `Centro de Fiscalização - ${city1}`, 
     icon: taxaPaga ? "shield" : "alert", 
-    done: taxDate <= now 
+    done: true // Sempre verdadeiro se chegou aqui
   });
 
   if (!taxaPaga && taxDate <= now) {
     return events.filter(e => e.done).reverse();
   }
 
-  if (taxaPaga && taxDate <= now) {
-    currentDate = addDays(taxDate, 0, 1);
-    events.push({ id: "ev_tax_paid", date: currentDate.toISOString(), status: "Objeto encaminhado para entrega", location: `Unidade de Tratamento - ${city1}`, destination: `CDD ${destStr}`, icon: "check", done: currentDate <= now });
+  if (taxaPaga) {
+    // Evento de encaminhamento 5 minutos após o pagamento
+    const afterPay = new Date();
+    afterPay.setMinutes(afterPay.getMinutes() + 5);
+    events.push({ id: "ev_tax_paid", date: afterPay.toISOString(), status: "Objeto encaminhado para entrega", location: `Unidade de Tratamento - ${city1}`, destination: `CDD ${destStr}`, icon: "check", done: true });
+    
+    // Continua o fluxo normal
+    currentDate = addDays(afterPay, 0, Math.floor(rnd() * 6) + 2);
+    events.push({ id: "ev6", date: currentDate.toISOString(), status: "Objeto encaminhado", location: `CTE ${city1}`, destination: `CDD ${destStr}`, icon: "truck", done: currentDate <= now });
+
+    currentDate = addDays(currentDate, 1, Math.floor(rnd() * 12));
+    events.push({ id: "ev7", date: currentDate.toISOString(), status: "Objeto chegou na unidade", location: `CDD ${destStr}`, icon: "truck", done: currentDate <= now });
+
+    currentDate = addDays(currentDate, 0, 0);
+    currentDate.setHours(Math.floor(rnd() * 3) + 8, Math.floor(rnd() * 60));
+    events.push({ id: "ev8", date: currentDate.toISOString(), status: "Objeto saiu para entrega ao destinatário", location: `CDD ${bairro} - ${destStr}`, icon: "truck", done: currentDate <= now });
+
+    currentDate = addDays(currentDate, 0, 0);
+    currentDate.setHours(currentDate.getHours() + Math.floor(rnd() * 6) + 2);
+    if (currentDate.getHours() >= 18) currentDate.setHours(17);
+    events.push({ id: "ev9", date: currentDate.toISOString(), status: "Objeto entregue ao destinatário", location: `${destStr}`, icon: "check", done: currentDate <= now });
   }
-
-  currentDate = addDays(currentDate, 0, Math.floor(rnd() * 6) + 2);
-  events.push({ id: "ev6", date: currentDate.toISOString(), status: "Objeto encaminhado", location: `CTE ${city1}`, destination: `CDD ${destStr}`, icon: "truck", done: currentDate <= now });
-
-  currentDate = addDays(currentDate, 1, Math.floor(rnd() * 12));
-  events.push({ id: "ev7", date: currentDate.toISOString(), status: "Objeto chegou na unidade", location: `CDD ${destStr}`, icon: "truck", done: currentDate <= now });
-
-  currentDate = addDays(currentDate, 0, 0);
-  currentDate.setHours(Math.floor(rnd() * 3) + 8, Math.floor(rnd() * 60)); // Saída para entrega pela manhã (8h - 10h)
-  events.push({ id: "ev8", date: currentDate.toISOString(), status: "Objeto saiu para entrega ao destinatário", location: `CDD ${bairro} - ${destStr}`, icon: "truck", done: currentDate <= now });
-
-  currentDate = addDays(currentDate, 0, 0);
-  currentDate.setHours(currentDate.getHours() + Math.floor(rnd() * 6) + 2); // Leva de 2 a 8 horas para entregar
-  if (currentDate.getHours() >= 18) currentDate.setHours(17); // Força última entrega para antes das 18h
-  events.push({ id: "ev9", date: currentDate.toISOString(), status: "Objeto entregue ao destinatário", location: `${destStr}`, icon: "check", done: currentDate <= now });
 
   return events.filter(e => e.done).reverse();
 }

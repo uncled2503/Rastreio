@@ -27,29 +27,19 @@ const BAIRROS = [
 ];
 
 export function generateTimeline(code: string, destCity: string, destState: string, destBairro: string, startDateIso: string, taxaPaga: boolean = false): TrackingEvent[] {
-  // ============================================================================
-  // MODO DE TESTE FIXO PARA OS CÓDIGOS DE TESTE
-  // ============================================================================
+  // MODO DE TESTE FIXO
   if (code === 'BR1212H271BR' || code === 'BR8888T888BR') {
     const getBusinessDate = (date: Date) => {
       const d = new Date(date);
       if (d.getDay() === 6) d.setDate(d.getDate() - 1);
       if (d.getDay() === 0) d.setDate(d.getDate() - 2);
-      const h = d.getHours();
-      if (h < 8 || h >= 18) d.setHours(14);
       return d;
     };
 
     const base = getBusinessDate(new Date());
-
     const d = (daysAgo: number) => {
       let date = new Date(base);
-      let count = 0;
-      while (count < daysAgo) {
-        date.setDate(date.getDate() - 1);
-        if (date.getDay() !== 0 && date.getDay() !== 6) count++;
-      }
-      date.setHours(9 + (count % 8), 15 + (count % 40));
+      date.setDate(date.getDate() - daysAgo);
       return date.toISOString();
     };
 
@@ -64,20 +54,16 @@ export function generateTimeline(code: string, destCity: string, destState: stri
     ];
 
     if (taxaPaga) {
-      // Evento de encaminhamento logo após a confirmação (1 min depois)
-      const afterPay = new Date();
-      afterPay.setMinutes(afterPay.getMinutes() + 1);
-      mockEvents.push({ id: 'ev_tax_paid', date: afterPay.toISOString(), status: "Objeto encaminhado para entrega", location: "Unidade de Tratamento - Curitiba / PR", destination: `CDD ${destCity} / ${destState}`, icon: "check", done: true });
+      const now = new Date();
+      mockEvents.push({ id: 'ev_tax_paid', date: now.toISOString(), status: "Objeto encaminhado para entrega", location: "Unidade de Tratamento - Curitiba / PR", destination: `CDD ${destCity} / ${destState}`, icon: "check", done: true });
     }
 
     return mockEvents.filter(e => e.done).reverse();
   }
-  // ============================================================================
 
+  // LÓGICA DINÂMICA PARA LEADS REAIS
   let seedValue = 0;
-  for (let i = 0; i < code.length; i++) {
-    seedValue = (Math.imul(31, seedValue) + code.charCodeAt(i)) | 0;
-  }
+  for (let i = 0; i < code.length; i++) seedValue = (Math.imul(31, seedValue) + code.charCodeAt(i)) | 0;
   
   const rnd = () => {
     seedValue = (seedValue + 0x6D2B79F5) | 0;
@@ -88,94 +74,65 @@ export function generateTimeline(code: string, destCity: string, destState: stri
 
   const start = new Date(startDateIso);
   const now = new Date();
-
   const city1 = CIDADES[Math.floor(rnd() * CIDADES.length)];
   const franquia = FRANQUIAS[Math.floor(rnd() * FRANQUIAS.length)];
   const bairro = destBairro || BAIRROS[Math.floor(rnd() * BAIRROS.length)];
 
-  const addDays = (date: Date, days: number, hours: number) => {
+  const addDays = (date: Date, days: number) => {
     const d = new Date(date);
-    let added = 0;
-    while (added < days) {
-      d.setDate(d.getDate() + 1);
-      if (d.getDay() !== 0 && d.getDay() !== 6) added++;
-    }
-    d.setHours(d.getHours() + hours);
-    while (d.getDay() === 0 || d.getDay() === 6) {
-      d.setDate(d.getDate() + 1);
-      d.setHours(8);
-    }
-    const h = d.getHours();
-    if (h < 8) d.setHours(8 + Math.floor(rnd() * 3));
-    if (h >= 18) d.setHours(14 + Math.floor(rnd() * 3));
+    d.setDate(d.getDate() + days);
     return d;
   };
 
   const destStr = destState ? `${destCity} / ${destState}` : destCity;
   const events: TrackingEvent[] = [];
   
-  events.push({ id: "ev0", date: start.toISOString(), status: "Código de rastreio cadastrado, aguardando postagem", location: `ACF ${franquia} - São Paulo / SP`, icon: "package", done: true });
+  let current = new Date(start);
+  events.push({ id: "ev0", date: current.toISOString(), status: "Código de rastreio cadastrado, aguardando postagem", location: `ACF ${franquia} - São Paulo / SP`, icon: "package", done: true });
 
-  let postDate = new Date(start);
-  postDate.setDate(postDate.getDate() + 1);
-  while (postDate.getDay() === 0 || postDate.getDay() === 6) postDate.setDate(postDate.getDate() + 1);
-  postDate.setHours(8 + Math.floor(rnd() * 4), Math.floor(rnd() * 60), 0);
+  current = addDays(current, 1);
+  events.push({ id: "ev1", date: current.toISOString(), status: "Objeto postado", location: `ACF ${franquia} - São Paulo / SP`, icon: "package", done: current <= now });
 
-  let currentDate = new Date(postDate);
-  events.push({ id: "ev1", date: currentDate.toISOString(), status: "Objeto postado", location: `ACF ${franquia} - São Paulo / SP`, icon: "package", done: currentDate <= now });
+  current = addDays(current, 1);
+  events.push({ id: "ev2", date: current.toISOString(), status: "Objeto encaminhado", location: `ACF ${franquia} - São Paulo / SP`, destination: `CTE São Paulo - São Paulo / SP`, icon: "truck", done: current <= now });
 
-  currentDate = addDays(currentDate, 0, Math.floor(rnd() * 4) + 1);
-  events.push({ id: "ev2", date: currentDate.toISOString(), status: "Objeto encaminhado", location: `ACF ${franquia} - São Paulo / SP`, destination: `CTE São Paulo - São Paulo / SP`, icon: "truck", done: currentDate <= now });
+  current = addDays(current, 2);
+  events.push({ id: "ev3", date: current.toISOString(), status: "Objeto chegou na unidade", location: `CTE São Paulo - São Paulo / SP`, icon: "truck", done: current <= now });
 
-  currentDate = addDays(currentDate, 0, Math.floor(rnd() * 8) + 4);
-  events.push({ id: "ev3", date: currentDate.toISOString(), status: "Objeto chegou na unidade", location: `CTE São Paulo - São Paulo / SP`, icon: "truck", done: currentDate <= now });
+  current = addDays(current, 1);
+  events.push({ id: "ev4", date: current.toISOString(), status: "Objeto encaminhado", location: `CTE São Paulo - São Paulo / SP`, destination: `CTE ${city1}`, icon: "truck", done: current <= now });
 
-  currentDate = addDays(currentDate, 1, Math.floor(rnd() * 5));
-  events.push({ id: "ev4", date: currentDate.toISOString(), status: "Objeto encaminhado", location: `CTE São Paulo - São Paulo / SP`, destination: `CTE ${city1}`, icon: "truck", done: currentDate <= now });
+  current = addDays(current, 2);
+  events.push({ id: "ev5", date: current.toISOString(), status: "Objeto chegou na unidade", location: `CTE ${city1}`, icon: "truck", done: current <= now });
 
-  currentDate = addDays(currentDate, 1, Math.floor(rnd() * 12));
-  events.push({ id: "ev5", date: currentDate.toISOString(), status: "Objeto chegou na unidade", location: `CTE ${city1}`, icon: "truck", done: currentDate <= now });
-
-  currentDate = addDays(currentDate, 0, Math.floor(rnd() * 4) + 2);
-  const taxDate = new Date(currentDate);
+  current = addDays(current, 1);
   
-  // Se a taxa foi paga, o evento de imposto assume a data ATUAL para garantir que apareça como concluído
-  const displayTaxDate = taxaPaga ? new Date().toISOString() : taxDate.toISOString();
-
+  // Se pagou, o evento de taxa assume AGORA para liberar o fluxo
+  const taxDate = taxaPaga ? new Date() : current;
   events.push({ 
     id: "ev_tax", 
-    date: displayTaxDate, 
+    date: taxDate.toISOString(), 
     status: taxaPaga ? "Pagamento confirmado: Objeto liberado pela fiscalização aduaneira" : "Aguardando pagamento: Objeto retido na fiscalização aduaneira", 
     location: `Centro de Fiscalização - ${city1}`, 
     icon: taxaPaga ? "shield" : "alert", 
-    done: true // Sempre verdadeiro se chegou aqui
+    done: true 
   });
 
-  if (!taxaPaga && taxDate <= now) {
-    return events.filter(e => e.done).reverse();
-  }
-
   if (taxaPaga) {
-    // Evento de encaminhamento 5 minutos após o pagamento
-    const afterPay = new Date();
-    afterPay.setMinutes(afterPay.getMinutes() + 5);
-    events.push({ id: "ev_tax_paid", date: afterPay.toISOString(), status: "Objeto encaminhado para entrega", location: `Unidade de Tratamento - ${city1}`, destination: `CDD ${destStr}`, icon: "check", done: true });
+    const after = new Date(taxDate);
+    events.push({ id: "ev_tax_paid", date: after.toISOString(), status: "Objeto encaminhado para entrega", location: `Unidade de Tratamento - ${city1}`, destination: `CDD ${destStr}`, icon: "check", done: true });
     
-    // Continua o fluxo normal
-    currentDate = addDays(afterPay, 0, Math.floor(rnd() * 6) + 2);
-    events.push({ id: "ev6", date: currentDate.toISOString(), status: "Objeto encaminhado", location: `CTE ${city1}`, destination: `CDD ${destStr}`, icon: "truck", done: currentDate <= now });
+    after.setHours(after.getHours() + 2);
+    events.push({ id: "ev6", date: after.toISOString(), status: "Objeto encaminhado", location: `CTE ${city1}`, destination: `CDD ${destStr}`, icon: "truck", done: true });
 
-    currentDate = addDays(currentDate, 1, Math.floor(rnd() * 12));
-    events.push({ id: "ev7", date: currentDate.toISOString(), status: "Objeto chegou na unidade", location: `CDD ${destStr}`, icon: "truck", done: currentDate <= now });
+    after.setHours(after.getHours() + 4);
+    events.push({ id: "ev7", date: after.toISOString(), status: "Objeto chegou na unidade", location: `CDD ${destStr}`, icon: "truck", done: true });
 
-    currentDate = addDays(currentDate, 0, 0);
-    currentDate.setHours(Math.floor(rnd() * 3) + 8, Math.floor(rnd() * 60));
-    events.push({ id: "ev8", date: currentDate.toISOString(), status: "Objeto saiu para entrega ao destinatário", location: `CDD ${bairro} - ${destStr}`, icon: "truck", done: currentDate <= now });
+    after.setHours(after.getHours() + 2);
+    events.push({ id: "ev8", date: after.toISOString(), status: "Objeto saiu para entrega ao destinatário", location: `CDD ${bairro} - ${destStr}`, icon: "truck", done: true });
 
-    currentDate = addDays(currentDate, 0, 0);
-    currentDate.setHours(currentDate.getHours() + Math.floor(rnd() * 6) + 2);
-    if (currentDate.getHours() >= 18) currentDate.setHours(17);
-    events.push({ id: "ev9", date: currentDate.toISOString(), status: "Objeto entregue ao destinatário", location: `${destStr}`, icon: "check", done: currentDate <= now });
+    after.setHours(after.getHours() + 2);
+    events.push({ id: "ev9", date: after.toISOString(), status: "Objeto entregue ao destinatário", location: `${destStr}`, icon: "check", done: true });
   }
 
   return events.filter(e => e.done).reverse();

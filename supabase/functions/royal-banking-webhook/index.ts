@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
 serve(async (req) => {
-  console.log("[royal-banking-webhook] Recebendo requisição...");
+  console.log("[royal-banking-webhook] Recebendo notificação...");
 
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -15,63 +15,49 @@ serve(async (req) => {
     });
   }
 
-  const defaultResponse = new Response(JSON.stringify({ status: 200, message: "OK" }), {
+  // Resposta exigida pela Royal Banking: json_encode(200) que resulta na string "200"
+  const okResponse = new Response("200", {
     status: 200,
     headers: { 'Content-Type': 'application/json' }
   });
 
   try {
-    const bodyText = await req.text();
-    console.log("[royal-banking-webhook] Payload recebido:", bodyText);
+    const body = await req.json();
+    console.log("[royal-banking-webhook] Payload:", JSON.stringify(body));
 
-    if (!bodyText) return defaultResponse;
+    // A documentação cita idTransaction no JSON mas externalReference na tabela de campos.
+    // Vamos capturar ambos para não ter erro.
+    const transactionId = body.idTransaction || body.externalReference || body.id;
+    const status = String(body.status || '').toLowerCase();
 
-    let body;
-    try {
-      body = JSON.parse(bodyText);
-    } catch (e) {
-      console.error("[royal-banking-webhook] Erro de JSON:", e);
-      return defaultResponse;
-    }
+    console.log(`[royal-banking-webhook] ID: ${transactionId} | Status: ${status}`);
 
-    // Suporte robusto para múltiplas estruturas e case-insensitivity
-    const transactionId = body.idTransaction || body.externalReference || body.id || (body.data && body.data.idTransaction);
-    const rawStatus = body.status || (body.data && body.data.status) || '';
-    
-    // Transforma PAID, Approved, etc em tudo minúsculo para garantir a validação
-    const status = String(rawStatus).toLowerCase();
+    // Status de sucesso: "paid" (cash in) ou "SaquePago" (cash out)
+    const isPaid = status === 'paid' || status === 'saquepago' || status === 'approved';
 
-    console.log(`[royal-banking-webhook] ID Extraído: ${transactionId} | Status Extraído: ${status}`);
-
-    // Status que indicam que o pagamento foi um sucesso no Gateway
-    const successStatuses = ['paid', 'approved', 'success', 'concluded', 'pago', 'aproved'];
-
-    if (transactionId && successStatuses.includes(status)) {
+    if (transactionId && isPaid) {
       const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
       const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-      
       const supabase = createClient(supabaseUrl, supabaseKey);
 
-      console.log(`[royal-banking-webhook] Atualizando transação ${transactionId} para approved...`);
+      console.log(`[royal-banking-webhook] Confirmando pagamento para: ${transactionId}`);
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('pix_gateway_payments')
-        .update({ status: 'approved' })
-        .eq('id_transaction', String(transactionId))
-        .select();
+        .update({ status: 'paid' }) // Mudamos para "paid" para bater com o check-pix-status
+        .eq('id_transaction', String(transactionId));
 
       if (error) {
-        console.error("[royal-banking-webhook] Erro ao atualizar BD:", error);
+        console.error("[royal-banking-webhook] Erro ao atualizar banco:", error);
       } else {
-        console.log("[royal-banking-webhook] Sucesso! Linhas afetadas:", data?.length);
+        console.log("[royal-banking-webhook] Pagamento processado com sucesso.");
       }
-    } else {
-      console.log("[royal-banking-webhook] Ignorado. ID Ausente ou Status não aprovado.");
     }
 
-    return defaultResponse;
+    return okResponse;
   } catch (err) {
-    console.error("[royal-banking-webhook] Erro fatal:", err);
-    return defaultResponse;
+    console.error("[royal-banking-webhook] Erro ao processar webhook:", err);
+    // Mesmo em erro, retornamos 200 para evitar que eles fiquem reenviando se o problema for no nosso código
+    return okResponse;
   }
 })

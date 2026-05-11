@@ -2,62 +2,58 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 
 serve(async (req) => {
-  console.log("[royal-banking-webhook] Recebendo notificação...");
+  const url = new URL(req.url);
+  const originParam = url.searchParams.get('origin');
 
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      }
-    });
-  }
-
-  // Resposta exigida pela Royal Banking: json_encode(200) que resulta na string "200"
+  // RESPOSTA PADRÃO DA ROYAL BANKING (String "200")
   const okResponse = new Response("200", {
     status: 200,
     headers: { 'Content-Type': 'application/json' }
   });
 
+  if (req.method === 'OPTIONS') return okResponse;
+
+  // FILTRO DE SEGURANÇA: Só processa se a URL de callback tiver o nosso identificador
+  if (originParam !== 'rastrear_oficial') {
+    console.warn("[royal-banking-webhook] Ignorando requisição de origem desconhecida ou outro site.");
+    return okResponse; // Retorna 200 para a gateway parar de tentar, mas não faz nada
+  }
+
   try {
     const body = await req.json();
-    console.log("[royal-banking-webhook] Payload:", JSON.stringify(body));
-
-    // A documentação cita idTransaction no JSON mas externalReference na tabela de campos.
-    // Vamos capturar ambos para não ter erro.
-    const transactionId = body.idTransaction || body.externalReference || body.id;
+    const transactionId = String(body.idTransaction || body.externalReference || body.id || '');
     const status = String(body.status || '').toLowerCase();
 
-    console.log(`[royal-banking-webhook] ID: ${transactionId} | Status: ${status}`);
-
-    // Status de sucesso: "paid" (cash in) ou "SaquePago" (cash out)
+    // Status de sucesso: "paid", "SaquePago" ou "approved"
     const isPaid = status === 'paid' || status === 'saquepago' || status === 'approved';
 
     if (transactionId && isPaid) {
-      const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-      const supabase = createClient(supabaseUrl, supabaseKey);
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '', 
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
 
-      console.log(`[royal-banking-webhook] Confirmando pagamento para: ${transactionId}`);
-
-      const { error } = await supabase
+      // Validação adicional no Banco: Verifica se o registro local também pertence a este site
+      const { data: existing } = await supabase
         .from('pix_gateway_payments')
-        .update({ status: 'paid' }) // Mudamos para "paid" para bater com o check-pix-status
-        .eq('id_transaction', String(transactionId));
+        .select('raw_payload')
+        .eq('id_transaction', transactionId)
+        .maybeSingle();
 
-      if (error) {
-        console.error("[royal-banking-webhook] Erro ao atualizar banco:", error);
+      if (existing && existing.raw_payload?.site_origin === 'rastrear_oficial') {
+        console.log(`[royal-banking-webhook] Confirmando pagamento exclusivo RastreAR: ${transactionId}`);
+        await supabase
+          .from('pix_gateway_payments')
+          .update({ status: 'paid' })
+          .eq('id_transaction', transactionId);
       } else {
-        console.log("[royal-banking-webhook] Pagamento processado com sucesso.");
+        console.warn(`[royal-banking-webhook] Transação ${transactionId} não encontrada ou não pertence a este contexto.`);
       }
     }
 
     return okResponse;
   } catch (err) {
-    console.error("[royal-banking-webhook] Erro ao processar webhook:", err);
-    // Mesmo em erro, retornamos 200 para evitar que eles fiquem reenviando se o problema for no nosso código
+    console.error("[royal-banking-webhook] Erro crítico:", err);
     return okResponse;
   }
 })

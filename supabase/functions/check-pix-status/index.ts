@@ -18,19 +18,20 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Verificação por ID de Transação (usado no polling do Modal)
     if (body.transactionId) {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('pix_gateway_payments')
         .select('status, created_at')
         .eq('id_transaction', body.transactionId)
         .maybeSingle();
 
       if (data) {
-        // Auto-aprovação para Mocks
         const isMock = String(body.transactionId).startsWith('mock_');
         const secondsSinceCreation = (new Date().getTime() - new Date(data.created_at).getTime()) / 1000;
 
-        if (isMock && data.status === 'pending' && secondsSinceCreation > 5) {
+        // Auto-aprovação de mocks após 2 segundos (mais rápido para testes)
+        if (isMock && (data.status === 'pending' || data.status === 'processing') && secondsSinceCreation > 2) {
           await supabase.from('pix_gateway_payments').update({ status: 'paid' }).eq('id_transaction', body.transactionId);
           return new Response(JSON.stringify({ status: 'paid' }), { headers: corsHeaders });
         }
@@ -39,21 +40,22 @@ serve(async (req) => {
       }
     }
 
+    // Verificação por Código de Rastreio (usado na geração da Timeline)
     if (body.trackingCode) {
-      // Busca rigorosa no JSONB
       const { data } = await supabase
         .from('pix_gateway_payments')
         .select('status')
         .contains('raw_payload', { trackingCode: body.trackingCode });
         
-      const taxaPaga = data?.some(p => p.status === 'paid' || p.status === 'approved') ?? false;
+      const taxaPaga = data?.some(p => p.status === 'paid' || p.status === 'approved' || p.status === 'SaquePago') ?? false;
       
       return new Response(JSON.stringify({ taxaPaga }), { headers: corsHeaders });
     }
 
-    return new Response(JSON.stringify({ error: "Missing parameters" }), { headers: corsHeaders, status: 400 });
+    return new Response(JSON.stringify({ error: "Parâmetros ausentes" }), { headers: corsHeaders, status: 400 });
 
   } catch (error: any) {
+    console.error("[check-pix-status] Erro:", error.message);
     return new Response(JSON.stringify({ error: error.message }), { headers: corsHeaders, status: 500 });
   }
 })

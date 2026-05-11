@@ -40,7 +40,7 @@ export const PixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, amount
       }
     };
 
-    const interval = setInterval(checkPayment, 3000);
+    const interval = setInterval(checkPayment, 15000);
     return () => clearInterval(interval);
   }, [isOpen, transactionId, onSuccess]);
 

@@ -39,7 +39,7 @@ export const PlanPixModal = ({ isOpen, onClose, pixCopiaECola, transactionId, pl
       }
     };
 
-    const interval = setInterval(checkPayment, 3000); 
+    const interval = setInterval(checkPayment, 15000); 
     return () => clearInterval(interval);
   }, [isOpen, transactionId, onSuccess]);
 
